@@ -6,7 +6,7 @@ MODE ?= DEBUG
 INCLUDE_DIR = include
 
 .PHONY: all
-all:
+all: gshl.h
 	$(MAKE) --no-print-directory MODE=DEBUG build
 	$(MAKE) --no-print-directory MODE=RELEASE build
 
@@ -30,6 +30,10 @@ endif
 ifeq ($(MODE), RELEASE)
 	include release.mk
 endif
+
+gshl.h: \
+	include/macros.h
+	./single-header.sh $^
 
 ifndef BUILD_DIR
 $(error BUILD_DIR is not defined)
