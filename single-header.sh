@@ -60,6 +60,8 @@ echo "#ifdef GSHL_IMPLEMENTATION" >> "$single_header"
 for src in $src_deps
 do
   lines="$(awk 'END {print NR}' "$src")"
+  [ "$lines" -le 0 ] && continue
+
   first_empty_line_number="$(awk '/^$/ {print NR ; exit}' "$src")"
   if ! { [ 1 -le "$first_empty_line_number" ] && [ "$first_empty_line_number" -le "$lines" ]; }
   then
@@ -69,9 +71,11 @@ do
   {
     printf '#ifdef GSHL_SOURCE_CODE_MAPPING\n'
     printf '#line %d "%s"\n' "$first_empty_line_number" "$src"
-    printf '#endif\n'
+    printf '#endif // GSHL_SOURCE_CODE_MAPPING\n'
   } >> "$single_header"
   grep --invert-match '^#include "' "$src" >> "$single_header"
   printf '\033[32m%s\033[0m %s\n' ✓ "$src"
 done
-echo "#endif" >> gshl.h
+echo "#endif // GSHL_IMPLEMENTATION" >> "$single_header"
+
+(set -x; clang-format -i "$single_header")

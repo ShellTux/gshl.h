@@ -1,6 +1,10 @@
 #ifndef INCLUDE_INCLUDE_MACROS_H_
 #define INCLUDE_INCLUDE_MACROS_H_
 
+#ifndef GSHLDEF
+#    define GSHLDEF
+#endif
+
 #define GSHL_UNUSED(X) (void)(X)
 #define GSHL_EXIT(FORMAT, MESSAGE)                                             \
     do {                                                                       \

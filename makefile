@@ -31,8 +31,10 @@ ifeq ($(MODE), RELEASE)
 	include release.mk
 endif
 
-gshl.h: \
-	include/macros.h
+HEADERS := $(shell find $(INCLUDE_DIR) -name '*.h')
+SRCS := $(shell find src -name '*.c')
+
+gshl.h: $(HEADERS) $(SRCS)
 	./single-header.sh $^
 
 ifndef BUILD_DIR
