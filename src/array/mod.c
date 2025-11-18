@@ -1,10 +1,10 @@
-#include "array.h"
-#include "types.h"
+#include "array/mod.h"
+#include "types/mod.h"
 #include <stdlib.h>
 
 #ifdef GSHL_TESTS
 
-#    include "test.h"
+#    include "test/mod.h"
 
 GSHL_TEST(stackarray)
 {

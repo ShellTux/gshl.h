@@ -1,4 +1,4 @@
-#include "math.h"
+#include "math/mod.h"
 
 usize GSHL_factorial(const usize number)
 {
@@ -12,7 +12,7 @@ usize GSHL_factorial(const usize number)
 
 #ifdef GSHL_TESTS
 
-#    include "test.h"
+#    include "test/mod.h"
 
 GSHL_TEST(factorial)
 {

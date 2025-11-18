@@ -1,9 +1,8 @@
-#include "types.h"
+#include "types/mod.h"
 
 #ifdef GSHL_TESTS
 
-#    include "test.h"
-#    include <stdio.h> // IWYU pragma: keep
+#    include "test/mod.h"
 
 GSHL_TEST(types_size)
 {

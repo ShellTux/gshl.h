@@ -47,12 +47,12 @@ deps="$*"
 
 [ -z "$deps" ] && usage
 
-header_deps="$(echo "$deps" | tr ' ' '\n' | grep '.h$' | tr '\n' ' ')"
-src_deps="$(echo "$deps" | tr ' ' '\n' | grep '.c$' | tr '\n' ' ')"
+header_deps="$(echo "$deps" | tr ' ' '\n' | grep '.h$' | awk '!seen[$0]++' | tr '\n' ' ')"
+src_deps="$(echo "$deps" | tr ' ' '\n' | grep '.c$' | awk '!seen[$0]++' | tr '\n' ' ')"
 
 for header in $header_deps
 do
-  grep --invert-match '^#include "' "$header" >> "$single_header"
+  grep --invert-match '^#include "' "$header" >> "$single_header" || true
   printf '\033[32m%s\033[0m %s\n' ✓ "$header"
 done
 

@@ -1,7 +1,7 @@
 #ifndef INCLUDE_INCLUDE_ARRAY_H_
 #define INCLUDE_INCLUDE_ARRAY_H_
 
-#include "types.h"
+#include "types/mod.h"
 
 /// {{{ Macros
 

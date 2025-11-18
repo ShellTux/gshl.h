@@ -8,8 +8,8 @@
 #include <string.h> // IWYU pragma: keep
 
 #include "ansi/colors.h"
-#include "macros.h"
-#include "types.h"
+#include "macros/mod.h"
+#include "types/mod.h"
 
 /// {{{ Macros
 

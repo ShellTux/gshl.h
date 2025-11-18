@@ -1,6 +1,6 @@
-#include "test.h"
-#include "macros.h"
-#include "types.h"
+#include "test/mod.h"
+#include "macros/mod.h"
+#include "types/mod.h"
 
 #include <stddef.h>
 #include <stdio.h>
