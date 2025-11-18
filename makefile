@@ -69,6 +69,11 @@ run: $(TARGETS)
 .PHONY: r
 r: run
 
+.PHONY: test
+test: $(TARGET_DIR)/gshl-test
+	$(MAKE)
+	$^
+
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir --parents $(shell dirname $@)
 	$(CXX) $(CXXFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<

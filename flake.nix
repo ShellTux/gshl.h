@@ -43,6 +43,13 @@
             hooks = {
               clang-format.enable = true;
               nixfmt-rfc-style.enable = true;
+
+              gshl-test = {
+                enable = true;
+                name = "gshl.h Unit Tests";
+                entry = "make test";
+                files = "\\.(c|h)$";
+              };
             };
           };
         }
