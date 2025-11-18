@@ -41,7 +41,11 @@
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
-              clang-format.enable = true;
+              clang-format = {
+                enable = true;
+                excludes = [ "gshl\\.h" ];
+              };
+              clang-tidy.enable = true;
               nixfmt-rfc-style.enable = true;
 
               gshl-test = {
