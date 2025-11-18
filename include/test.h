@@ -4,7 +4,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h> // IWYU pragma: keep
+#include <stdio.h>  // IWYU pragma: keep
+#include <string.h> // IWYU pragma: keep
 
 #include "ansi/colors.h"
 #include "macros.h"
@@ -51,9 +52,10 @@
         GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
                                                                                \
         if (strcmp((STR1), (STR2)) != 0) {                                     \
+            *failed_tests += 1;                                                \
             fprintf(stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
-                        " FAILED ") " Assertion failed : %s == %s\n",          \
+                        " FAILED ") " Assertion failed : \"%s\" == \"%s\"\n",  \
                     __FILE__, __LINE__, __func__, STR1, STR2);                 \
                                                                                \
             if (opt.continue_on_fail) {                                        \

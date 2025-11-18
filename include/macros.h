@@ -1,6 +1,8 @@
 #ifndef INCLUDE_INCLUDE_MACROS_H_
 #define INCLUDE_INCLUDE_MACROS_H_
 
+#include <stdio.h> // IWYU pragma: keep
+
 #ifndef GSHLDEF
 #    define GSHLDEF
 #endif
