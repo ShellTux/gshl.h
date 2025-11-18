@@ -43,14 +43,93 @@ typedef int64_t i64;
 typedef intmax_t isize;
 
 #endif // INCLUDE_INCLUDE_TYPES_H_
+#ifndef INCLUDE_INCLUDE_ARRAY_H_
+#define INCLUDE_INCLUDE_ARRAY_H_
+
+
+/// {{{ Macros
+
+#define GSHL_ARRAYN_PRINT(ARRAY, N, ELEMENT_FORMAT, ...)                       \
+    do {                                                                       \
+        struct GSHL_ArrayPrintOpts opts = {__VA_ARGS__};                       \
+        opts.sep = opts.sep ? opts.sep : ", ";                                 \
+        opts.end = opts.end ? opts.end : "\n";                                 \
+        opts.array_limits = opts.array_limits ? opts.array_limits : "{}";      \
+        printf("%s[%zu] = %c ", #ARRAY, N, opts.array_limits[0]);              \
+        for (usize array_index = 0; array_index < N; ++array_index) {          \
+            if (array_index == 0) {                                            \
+                printf(ELEMENT_FORMAT, ARRAY[array_index]);                    \
+            }                                                                  \
+            else {                                                             \
+                printf("%s" ELEMENT_FORMAT, opts.sep, ARRAY[array_index]);     \
+            }                                                                  \
+        }                                                                      \
+        printf(" %c%s", opts.array_limits[1], opts.end);                       \
+    } while (0)
+#define GSHL_ARRAYN_FOREACH(ARRAY, N, VARDECL, ...)                            \
+    for (usize keep = 1, index = 0, size = (N); keep && index < size;          \
+         keep = !keep, index++)                                                \
+        for (const VARDECL = (ARRAY)[index]; keep; keep = !keep)
+#define GSHL_ARRAYN_FOREACH_MUT(ARRAY, N, VARDECL)                             \
+    for (usize keep = 1, index = 0, size = (N); keep && index < size;          \
+         keep = !keep, index++)                                                \
+        for (VARDECL = &((ARRAY)[index]); keep; keep = !keep)
+
+#define GSHL_ARRAY_LEN(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
+#define GSHL_ARRAY_PRINT(ARRAY, ELEMENT_FORMAT, ...)                           \
+    GSHL_ARRAYN_PRINT(ARRAY, GSHL_ARRAY_LEN(ARRAY), ELEMENT_FORMAT, __VA_ARGS__)
+#define GSHL_ARRAY_FOREACH(ARRAY, VARDECL, ...)                                \
+    GSHL_ARRAYN_FOREACH(ARRAY, GSHL_ARRAY_LEN(ARRAY), VARDECL, __VA_ARGS__)
+#define GSHL_ARRAY_FOREACH_MUT(ARRAY, VARDECL)                                 \
+    GSHL_ARRAYN_FOREACH_MUT(ARRAY, GSHL_ARRAY_LEN(ARRAY), VARDECL)
+
+/// }}}
+
+/// {{{ Types
+
+typedef struct GSHL_ArrayPrintOpts {
+    char *sep;
+    char *end;
+    char *array_limits;
+} GSHL_ArrayPrintOpts;
+
+typedef struct GSHL_ArrayForEachOpts {
+    usize length;
+
+    u8 unused[];
+} GSHL_ArrayForEachOpts;
+
+/// }}}
+
+/// {{{ Functions
+
+/// }}}
+
+/// {{{ Strip Prefix
+
+#ifdef GSHL_STRIP_PREFIX
+#    define ARRAY_LEN GSHL_ARRAY_LEN
+#    define ARRAY_PRINT GSHL_ARRAY_PRINT
+#    define ARRAY_FOREACH GSHL_ARRAY_FOREACH
+#    define ARRAY_FOREACH_MUT GSHL_ARRAY_FOREACH_MUT
+#    define ARRAYN_PRINT GSHL_ARRAYN_PRINT
+#    define ARRAYN_FOREACH GSHL_ARRAYN_FOREACH
+#    define ARRAYN_FOREACH_MUT GSHL_ARRAYN_FOREACH_MUT
+#endif
+
+/// }}}
+
+#endif // INCLUDE_INCLUDE_ARRAY_H_
 #ifndef INCLUDE_INCLUDE_MATH_H_
 #define INCLUDE_INCLUDE_MATH_H_
+
 
 usize GSHL_factorial(const usize number);
 
 #endif // INCLUDE_INCLUDE_MATH_H_
 #ifndef INCLUDE_INCLUDE_ANSI_H_
 #define INCLUDE_INCLUDE_ANSI_H_
+
 
 #endif // INCLUDE_INCLUDE_ANSI_H_
 // vim: foldmethod=marker
@@ -61,15 +140,16 @@ usize GSHL_factorial(const usize number);
 #include <stddef.h>
 #include <stdio.h> // IWYU pragma: keep
 
+
 /// {{{ Macros
 
 #define GSHL_TEST(FUNC)                                                        \
-    void test_##FUNC();                                                        \
+    GSHL_TestFunction test_##FUNC;                                             \
     __attribute__((constructor)) void register_test_##FUNC(void)               \
     {                                                                          \
         GSHL_register_test_wrapper(#FUNC, test_##FUNC);                        \
     }                                                                          \
-    void test_##FUNC()
+    void test_##FUNC(usize *failed_tests)
 
 #define GSHL_REGISTER_TEST(TEST_FUNC)                                          \
     GSHL_register_test_wrapper(#TEST_FUNC, TEST_FUNC)
@@ -79,6 +159,7 @@ usize GSHL_factorial(const usize number);
         GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
                                                                                \
         if ((EXPR1) != (EXPR2)) {                                              \
+            *failed_tests += 1;                                                \
             fprintf(stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
                         " FAILED ") " Assertion failed : %s == %s\n",          \
@@ -122,9 +203,11 @@ usize GSHL_factorial(const usize number);
 
 /// {{{ Types
 
+typedef void(GSHL_TestFunction)(usize *failed_tests);
+
 typedef struct GSHL_Test {
     char *name;
-    void (*func)(void);
+    GSHL_TestFunction *func;
     struct GSHL_Test *next;
     struct GSHL_Test *prev;
 } GSHL_Test;
@@ -138,8 +221,8 @@ typedef struct {
 /// {{{ Functions
 
 GSHLDEF void GSHL_register_test_wrapper(const char *name,
-                                        void (*test_func)(void));
-GSHLDEF void GSHL_run_tests(const char *filter);
+                                        GSHL_TestFunction test_func);
+GSHLDEF usize GSHL_run_tests(const char *filter);
 
 /// }}}
 
@@ -237,7 +320,53 @@ GSHL_TEST(factorial)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/test.c"
+#    line 4 "src/array.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+#include <stdlib.h>
+
+#ifdef GSHL_TESTS
+
+#    include "test.h"
+
+GSHL_TEST(stackarray)
+{
+    const u8 a[] = {1, 2, 3, 4, 5};
+
+    GSHL_TEST_EQUAL(GSHL_ARRAY_LEN(a), 5);
+
+    u8 sum = 0;
+    GSHL_ARRAY_FOREACH(a, u8 element) { sum += element; }
+    GSHL_TEST_EQUAL(sum, 15);
+}
+
+GSHL_TEST(array)
+{
+    const struct {
+        i32 *items;
+        usize count;
+    } array = {
+        .count = 5,
+        .items = calloc(5, sizeof(i32)),
+    };
+
+    GSHL_ARRAYN_FOREACH_MUT(array.items, array.count, i32 * element)
+    {
+        *element = index + 1;
+    }
+
+    u8 sum = 0;
+    GSHL_ARRAYN_FOREACH(array.items, array.count, i32 element)
+    {
+        sum += element;
+    }
+    GSHL_TEST_EQUAL(sum, 15);
+
+    free(array.items);
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 4 "src/test.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 
 #include <stddef.h>
@@ -247,8 +376,9 @@ GSHL_TEST(factorial)
 
 static GSHL_Test *GSHL_test_list = NULL;
 
-GSHLDEF void GSHL_run_tests(const char *filter)
+GSHLDEF usize GSHL_run_tests(const char *filter)
 {
+    usize failed_tests = 0;
     size_t total = 0;
 
     printf("Running tests...\n");
@@ -265,15 +395,21 @@ GSHLDEF void GSHL_run_tests(const char *filter)
             continue;
         }
 
-        current->func();
+        current->func(&failed_tests);
         total++;
     }
 
-    printf("\nTotal Tests: %zu\n", total);
+    printf("\n");
+    if (failed_tests != 0) {
+        printf(GSHL_FG_RED("Failed tests:") " %zu\n", failed_tests);
+    }
+    printf("Total Tests:  %zu\n", total);
+
+    return failed_tests;
 }
 
 GSHLDEF void GSHL_register_test_wrapper(const char *name,
-                                        void (*test_func)(void))
+                                        GSHL_TestFunction test_func)
 {
     GSHL_Test *new_test = malloc(sizeof(*new_test));
 
