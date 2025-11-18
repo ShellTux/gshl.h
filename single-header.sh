@@ -72,10 +72,8 @@ do
     printf '#ifdef GSHL_SOURCE_CODE_MAPPING\n'
     printf '#line %d "%s"\n' "$first_empty_line_number" "$src"
     printf '#endif // GSHL_SOURCE_CODE_MAPPING\n'
-  } >> "$single_header"
+  } | clang-format >> "$single_header"
   grep --invert-match '^#include "' "$src" >> "$single_header"
   printf '\033[32m%s\033[0m %s\n' ✓ "$src"
 done
 echo "#endif // GSHL_IMPLEMENTATION" >> "$single_header"
-
-(set -x; clang-format -i "$single_header")
