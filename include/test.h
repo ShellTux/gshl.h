@@ -8,16 +8,17 @@
 
 #include "ansi/colors.h"
 #include "macros.h"
+#include "types.h"
 
 /// {{{ Macros
 
 #define GSHL_TEST(FUNC)                                                        \
-    void test_##FUNC();                                                        \
+    GSHL_TestFunction test_##FUNC;                                             \
     __attribute__((constructor)) void register_test_##FUNC(void)               \
     {                                                                          \
         GSHL_register_test_wrapper(#FUNC, test_##FUNC);                        \
     }                                                                          \
-    void test_##FUNC()
+    void test_##FUNC(usize *failed_tests)
 
 #define GSHL_REGISTER_TEST(TEST_FUNC)                                          \
     GSHL_register_test_wrapper(#TEST_FUNC, TEST_FUNC)
@@ -27,6 +28,7 @@
         GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
                                                                                \
         if ((EXPR1) != (EXPR2)) {                                              \
+            *failed_tests += 1;                                                \
             fprintf(stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
                         " FAILED ") " Assertion failed : %s == %s\n",          \
@@ -70,9 +72,11 @@
 
 /// {{{ Types
 
+typedef void(GSHL_TestFunction)(usize *failed_tests);
+
 typedef struct GSHL_Test {
     char *name;
-    void (*func)(void);
+    GSHL_TestFunction *func;
     struct GSHL_Test *next;
     struct GSHL_Test *prev;
 } GSHL_Test;
@@ -86,8 +90,8 @@ typedef struct {
 /// {{{ Functions
 
 GSHLDEF void GSHL_register_test_wrapper(const char *name,
-                                        void (*test_func)(void));
-GSHLDEF void GSHL_run_tests(const char *filter);
+                                        GSHL_TestFunction test_func);
+GSHLDEF usize GSHL_run_tests(const char *filter);
 
 /// }}}
 

@@ -1,5 +1,6 @@
 #include "test.h"
 #include "macros.h"
+#include "types.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -8,8 +9,9 @@
 
 static GSHL_Test *GSHL_test_list = NULL;
 
-GSHLDEF void GSHL_run_tests(const char *filter)
+GSHLDEF usize GSHL_run_tests(const char *filter)
 {
+    usize failed_tests = 0;
     size_t total = 0;
 
     printf("Running tests...\n");
@@ -26,15 +28,21 @@ GSHLDEF void GSHL_run_tests(const char *filter)
             continue;
         }
 
-        current->func();
+        current->func(&failed_tests);
         total++;
     }
 
-    printf("\nTotal Tests: %zu\n", total);
+    printf("\n");
+    if (failed_tests != 0) {
+        printf(GSHL_FG_RED("Failed tests:") " %zu\n", failed_tests);
+    }
+    printf("Total Tests:  %zu\n", total);
+
+    return failed_tests;
 }
 
 GSHLDEF void GSHL_register_test_wrapper(const char *name,
-                                        void (*test_func)(void))
+                                        GSHL_TestFunction test_func)
 {
     GSHL_Test *new_test = malloc(sizeof(*new_test));
 

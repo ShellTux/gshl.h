@@ -11,7 +11,9 @@ int main(int argc, char *argv[])
     UNUSED(argc);
     UNUSED(argv);
 
-    run_tests(NULL);
+    if (run_tests(NULL) > 0) {
+        return 1;
+    }
 
     return 0;
 }
