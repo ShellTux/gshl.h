@@ -8,13 +8,15 @@
 #endif
 
 #define GSHL_UNUSED(X) (void)(X)
-#define GSHL_EXIT(FORMAT, MESSAGE)                                             \
+#define GSHL_EXIT(...)                                                         \
     do {                                                                       \
-        fprintf(stderr, "%s:%d: " FORMAT "\n", __FILE__, __LINE__, MESSAGE);   \
+        fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);                        \
+        fprintf(stderr, __VA_ARGS__);                                          \
+        fprintf(stderr, "\n");                                                 \
         exit(1);                                                               \
     } while (0)
-#define GSHL_TODO(MESSAGE) GSHL_EXIT("TODO: %s", MESSAGE)
-#define GSHL_UNREACHABLE(MESSAGE) GSHL_EXIT("UNREACHABLE: %s", MESSAGE)
+#define GSHL_TODO(...) GSHL_EXIT("TODO: " __VA_ARGS__)
+#define GSHL_UNREACHABLE(...) GSHL_EXIT("UNREACHABLE: " __VA_ARGS__)
 #define GSHL_LOOP for (;;)
 
 #ifdef GSHL_STRIP_PREFIX
