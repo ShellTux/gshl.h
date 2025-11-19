@@ -19,6 +19,9 @@ GSHL_TEST(types_size)
     GSHL_TEST_EQUAL(sizeof(isize), 8);
 
     GSHL_TEST_EQUAL(sizeof(bool), 1);
+
+    GSHL_TEST_EQUAL(sizeof(f32), 4);
+    GSHL_TEST_EQUAL(sizeof(f64), 8);
 }
 
 #endif
