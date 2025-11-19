@@ -11,9 +11,7 @@ int main(int argc, char *argv[])
     UNUSED(argc);
     UNUSED(argv);
 
-    if (run_tests(NULL) > 0) {
-        return 1;
-    }
+    const int exit_code = run_tests(NULL) > 0;
 
-    return 0;
+    return exit_code;
 }
