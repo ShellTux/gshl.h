@@ -7,7 +7,38 @@
 #include <stdarg.h>
 #include <stddef.h>
 
+/// {{{ Macros
+
+// KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)
+#define GHSL_TEMPLATE_KINDS                                                    \
+    KIND(CSTRING, cstring, char *, char *, 0, "cstring", "string", "s")        \
+    KIND(CHAR, character, char, int, 1, "character", "char", "c")              \
+    KIND(POINTER, pointer, void *, void *, 2, "pointer", "p")                  \
+    KIND(HEXADECIMAL, hex, unsigned long, usize, 3, "hexadecimal", "hex", "h") \
+    KIND(I8, i8, i8, int, 4, "i8")                                             \
+    KIND(I16, i16, i16, int, 5, "i16")                                         \
+    KIND(I32, i32, i32, int, 6, "i32")                                         \
+    KIND(I64, i64, i64, long int, 7, "i64")                                    \
+    KIND(ISIZE, isize, isize, long int, 8, "isize")                            \
+    KIND(U8, u8, u8, unsigned int, 9, "u8")                                    \
+    KIND(U16, u16, u16, unsigned int, 10, "u16")                               \
+    KIND(U32, u32, u32, unsigned int, 11, "u32")                               \
+    KIND(U64, u64, u64, unsigned long, 12, "u64")                              \
+    KIND(USIZE, usize, usize, unsigned long, 13, "usize")                      \
+    KIND(F32, f32, f32, double, 14, "f32")                                     \
+    KIND(F64, f64, f64, double, 15, "f64")
+
+/// }}}
+
 /// {{{ Types
+
+typedef enum GSHL_TemplateKind {
+    GSHL_TEMPLATE_NONE = 0,
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
+    GSHL_TEMPLATE_##ENUM = 1 << BIT_SHIFT,
+    GHSL_TEMPLATE_KINDS
+#undef KIND
+} GSHL_TemplateKind;
 
 typedef struct GSHL_FormatOpts {
 } GSHL_FormatOpts;
@@ -15,80 +46,21 @@ typedef struct GSHL_FormatOpts {
 typedef struct GSHL_Template {
     char *formatStart, *formatEnd;
     usize count;
-    enum {
-        GSHL_TEMPLATE_NONE = 0,
-        GSHL_TEMPLATE_CSTRING,
-        GSHL_TEMPLATE_CHAR,
-        GSHL_TEMPLATE_POINTER,
+    GSHL_TemplateKind kind;
 
-        GSHL_TEMPLATE_HEXADECIMAL,
-
-        GSHL_TEMPLATE_I8,
-        GSHL_TEMPLATE_I16,
-        GSHL_TEMPLATE_I32,
-        GSHL_TEMPLATE_I64,
-        GSHL_TEMPLATE_ISIZE,
-
-        GSHL_TEMPLATE_U8,
-        GSHL_TEMPLATE_U16,
-        GSHL_TEMPLATE_U32,
-        GSHL_TEMPLATE_U64,
-        GSHL_TEMPLATE_USIZE,
-
-        GSHL_TEMPLATE_F32,
-        GSHL_TEMPLATE_F64,
-    } kind;
     // Actual value of template
     union {
-        i8 i8;
-        i16 i16;
-        i32 i32;
-        i64 i64;
-        isize isize;
-
-        u8 u8;
-        u16 u16;
-        u32 u32;
-        u64 u64;
-        usize usize;
-
-        f32 f32;
-        f64 f64;
-
-        char character;
-        char *cstring;
-
-        void *pointer;
-
-        usize hex;
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...) TYPE NAME;
+        GHSL_TEMPLATE_KINDS
+#undef KIND
     };
+
     // Function to write value into buf
     union {
-        usize (*character)(char *buf, const char character,
-                           const usize precomputed_count);
-        usize (*cstring)(char *buf, const char *cstring,
-                         const usize precomputed_count);
-        usize (*pointer)(char *buf, const void *pointer,
-                         const usize precomputed_count);
-        usize (*hex)(char *buf, const usize hex, const usize precomputed_count);
-
-        usize (*i8)(char *buf, const i8 i8, const usize precomputed_count);
-        usize (*i16)(char *buf, const i16 i16, const usize precomputed_count);
-        usize (*i32)(char *buf, const i32 i32, const usize precomputed_count);
-        usize (*i64)(char *buf, const i64 i64, const usize precomputed_count);
-        usize (*isize)(char *buf, const isize isize,
-                       const usize precomputed_count);
-
-        usize (*u8)(char *buf, const u8 u8, const usize precomputed_count);
-        usize (*u16)(char *buf, const u16 u16, const usize precomputed_count);
-        usize (*u32)(char *buf, const u32 u32, const usize precomputed_count);
-        usize (*u64)(char *buf, const u64 u64, const usize precomputed_count);
-        usize (*usize)(char *buf, const usize usize,
-                       const size_t precomputed_count);
-
-        usize (*f32)(char *buf, const f32 f32, const usize precomputed_count);
-        usize (*f64)(char *buf, const f64 f64, const usize precomputed_count);
-
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
+    usize (*NAME)(char *, const TYPE, const usize);
+        GHSL_TEMPLATE_KINDS
+#undef KIND
     } write;
 } GSHL_Template;
 
@@ -106,6 +78,7 @@ typedef struct GSHL_FormatWrapperResult {
 
 /// {{{ Functions
 
+GSHL_TemplateKind GSHL_template_kind_from_str(char **format);
 GSHL_FormatWrapperResult GSHL_format_wrapper(const char *restrict format, ...);
 GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                                               va_list args);
@@ -114,6 +87,9 @@ void GSHL_free_FormatWrapperResult(struct GSHL_FormatWrapperResult *result);
 /// }}}
 
 #ifdef GSHL_STRIP_PREFIX
+#    define format_wrapper GSHL_format_wrapper
+#    define format_wrapperv GSHL_format_wrapperv
+#    define free_FormatWrapperResult GHSL_free_FormatWrapperResult
 #endif // GSHL_STRIP_PREFIX
 
 #endif // INCLUDE_INCLUDE_FORMAT_H_

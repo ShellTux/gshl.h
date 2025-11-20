@@ -1,9 +1,9 @@
-#include "format/u32.h"
+#include "format/u16.h"
 #include "format/usize.h"
 
 #include "types/mod.h"
 
-usize write_u32(char *buf, const u32 value, const usize precomputed_count)
+usize write_u16(char *buf, const u16 value, const usize precomputed_count)
 {
     return write_usize(buf, value, precomputed_count);
 }

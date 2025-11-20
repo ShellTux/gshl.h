@@ -5,8 +5,8 @@
 
 /// {{{ Functions
 
-usize write_char(char *buf, const char character,
-                 const usize precomputed_count);
+usize write_character(char *buf, const char character,
+                      const usize precomputed_count);
 
 /// }}}
 
