@@ -18,8 +18,14 @@
 #define GSHL_TODO(...) GSHL_EXIT("TODO: " __VA_ARGS__)
 #define GSHL_UNREACHABLE(...) GSHL_EXIT("UNREACHABLE: " __VA_ARGS__)
 #define GSHL_LOOP for (;;)
+#ifdef DEBUG
+#    define GSHL_ASSERT(...) assert(__VA_ARGS__)
+#else
+#    define GSHL_ASSERT(...)
+#endif
 
 #ifdef GSHL_STRIP_PREFIX
+#    define ASSERT GSHL_ASSERT
 #    define loop GSHL_LOOP
 #    define LOOP GSHL_LOOP
 #    define TODO GSHL_TODO
