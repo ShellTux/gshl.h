@@ -109,6 +109,18 @@ typedef double f64;
 usize GSHL_factorial(const usize number);
 
 #endif // INCLUDE_INCLUDE_MATH_H_
+#ifndef INCLUDE_FORMAT_BOOL_H_
+#define INCLUDE_FORMAT_BOOL_H_
+
+
+/// {{{ Functions
+
+usize write_boolean(char *buf, const bool boolean,
+                    const usize precomputed_count);
+
+/// }}}
+
+#endif // INCLUDE_FORMAT_BOOL_H_
 #ifndef INCLUDE_FORMAT_U32_H_
 #define INCLUDE_FORMAT_U32_H_
 
@@ -131,6 +143,17 @@ usize write_u16(char *buf, const u16 value, const usize precomputed_count);
 /// }}}
 
 #endif // INCLUDE_FORMAT_U16_H_
+#ifndef INCLUDE_FORMAT_BINARY_H_
+#define INCLUDE_FORMAT_BINARY_H_
+
+
+/// {{{ Functions
+
+usize write_binary(char *buf, const u64 binary, const usize precomputed_count);
+
+/// }}}
+
+#endif // INCLUDE_FORMAT_BINARY_H_
 // vim: foldmethod=marker
 #ifndef INCLUDE_INCLUDE_FORMAT_H_
 #define INCLUDE_INCLUDE_FORMAT_H_
@@ -141,8 +164,31 @@ usize write_u16(char *buf, const u16 value, const usize precomputed_count);
 
 /// {{{ Macros
 
-// KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)
+#define GSHL_FILL_TEMPLATE                                                     \
+    /* TV(SPECIFIER, ENUM, NAME, TYPE, VALUE) */                               \
+    TV('%', CHAR, character, char, '%')                                        \
+    /* T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG) */                               \
+    T('b', BINARY, binary, u64, unsigned int)                                  \
+    T('B', BOOL, boolean, bool, unsigned int)                                  \
+    T('c', CHAR, character, char, int)                                         \
+    T('d', I32, i32, i32, int)                                                 \
+    T('i', I32, i32, i32, int)                                                 \
+    T('f', F32, f32, f32, double)                                              \
+    T('p', POINTER, pointer, void *, void *)                                   \
+    T('s', CSTRING, cstring, char *, char *)                                   \
+    T('u', U32, u32, u32, unsigned int)                                        \
+    T('x', HEXADECIMAL, hex, hex, unsigned int)                                \
+    T('X', HEXADECIMAL, hex, hex, unsigned int)                                \
+    /* TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) */                         \
+    TL('b', BINARY, binary, u64, long unsigned)                                \
+    TL('f', F64, f64, f64, double)                                             \
+    TL('i', I64, i64, i64, long int)                                           \
+    TL('u', U64, u64, u64, long unsigned)                                      \
+    TL('x', HEXADECIMAL, hex, hex, long unsigned)                              \
+    TL('X', HEXADECIMAL, hex, hex, long unsigned)
+
 #define GHSL_TEMPLATE_KINDS                                                    \
+    /* KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...) */                  \
     KIND(CSTRING, cstring, char *, char *, 0, "cstring", "string", "s")        \
     KIND(CHAR, character, char, int, 1, "character", "char", "c")              \
     KIND(POINTER, pointer, void *, void *, 2, "pointer", "p")                  \
@@ -158,7 +204,9 @@ usize write_u16(char *buf, const u16 value, const usize precomputed_count);
     KIND(U64, u64, u64, unsigned long, 12, "u64")                              \
     KIND(USIZE, usize, usize, unsigned long, 13, "usize")                      \
     KIND(F32, f32, f32, double, 14, "f32")                                     \
-    KIND(F64, f64, f64, double, 15, "f64")
+    KIND(F64, f64, f64, double, 15, "f64")                                     \
+    KIND(BOOL, boolean, bool, int, 16, "boolean", "bool")                      \
+    KIND(BINARY, binary, u64, unsigned int, 17, "binary", "bin")
 
 /// }}}
 
@@ -434,10 +482,21 @@ usize write_isize(char *buf, const isize isize, const usize precomputed_count);
                                                                                \
         if (strcmp((STR1), (STR2)) != 0) {                                     \
             *failed_tests += 1;                                                \
-            fprintf(stderr,                                                    \
+            if (opt.align_on_new_line) {                                       \
+                fprintf(                                                       \
+                    stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
+                        " FAILED ") " Assertion failed : \n\"%s\" == "         \
+                                    "\n\"%s\"\n",                              \
+                    __FILE__, __LINE__, __func__, STR1, STR2);                 \
+            }                                                                  \
+            else {                                                             \
+                fprintf(                                                       \
+                    stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
                         " FAILED ") " Assertion failed : \"%s\" == \"%s\"\n",  \
                     __FILE__, __LINE__, __func__, STR1, STR2);                 \
+            }                                                                  \
                                                                                \
             if (opt.continue_on_fail) {                                        \
                 return;                                                        \
@@ -466,6 +525,7 @@ typedef struct GSHL_Test {
 
 typedef struct {
     bool continue_on_fail;
+    bool align_on_new_line;
 } GSHL_TestEqualOpt;
 
 /// }}}
@@ -712,6 +772,64 @@ usize write_u32(char *buf, const u32 value, const usize precomputed_count)
     return write_usize(buf, value, precomputed_count);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 2 "src/format/bool.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+
+
+#include <assert.h>
+#include <string.h>
+
+usize write_boolean(char *buf, const bool boolean,
+                    const usize precomputed_count)
+{
+    static const char *strings[] = {
+        [false] = "false",
+        [true] = "true",
+    };
+
+    static const usize lens[] = {
+        [false] = sizeof("false") - 1,
+        [true] = sizeof("true") - 1,
+    };
+
+    if (buf == NULL || precomputed_count == 0) {
+        return lens[boolean];
+    }
+
+    GSHL_ASSERT(precomputed_count == lens[boolean]);
+
+    memcpy(buf, strings[boolean], precomputed_count);
+
+    return precomputed_count;
+}
+
+#ifdef GSHL_TESTS
+#    include "test/mod.h"
+
+GSHL_TEST(write_boolean)
+{
+#    define TEST_WRITE_BOOLEAN(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)        \
+        {                                                                      \
+            char buffer[256] = {0};                                            \
+            const usize count = write_boolean(NULL, NUMBER, 0);                \
+            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
+            GSHL_TEST_EQUAL(write_boolean(buffer, NUMBER, count),              \
+                            EXPECTED_COUNT);                                   \
+            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
+        }
+
+    TEST_WRITE_BOOLEAN(0, 5, "false");
+    TEST_WRITE_BOOLEAN(1, 4, "true");
+    TEST_WRITE_BOOLEAN(0b10101, 4, "true");
+    TEST_WRITE_BOOLEAN(~0L, 4, "true");
+    TEST_WRITE_BOOLEAN(true, 4, "true");
+    TEST_WRITE_BOOLEAN(false, 5, "false");
+
+#    undef TEST_WRITE_BOOLEAN
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 2 "src/format/f64.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 
@@ -736,9 +854,6 @@ usize write_f64(char *buf, const f64 value, const usize precomputed_count)
 
 usize write_hex(char *buf, const usize hex, const usize precomputed_count)
 {
-    static const char prefix[] = "0x";
-    static const usize prefixLen = sizeof(prefix) - 1;
-
     if (buf == NULL || precomputed_count == 0) {
         usize count = 0;
         usize remaining = hex;
@@ -747,19 +862,40 @@ usize write_hex(char *buf, const usize hex, const usize precomputed_count)
             count += 1;
         } while (remaining != 0);
 
-        return prefixLen + count;
+        return count;
     }
 
     usize remaining = hex;
-    for (isize i = precomputed_count - prefixLen - 1; i >= 0; --i) {
-        buf[prefixLen + i] = "0123456789ABCDEF"[remaining % 16];
+    for (isize i = precomputed_count - 1; i >= 0; --i) {
+        buf[i] = "0123456789abcdef"[remaining % 16];
         remaining >>= 4;
     }
 
-    memcpy(buf, prefix, prefixLen);
-
     return precomputed_count;
 }
+
+#ifdef GSHL_TESTS
+
+#    include "test/mod.h"
+
+GSHL_TEST(write_hex)
+{
+#    define TEST_WRITE_HEX(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)            \
+        {                                                                      \
+            char buffer[256] = {0};                                            \
+            const usize count = write_hex(NULL, NUMBER, 0);                    \
+            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
+            GSHL_TEST_EQUAL(write_hex(buffer, NUMBER, count), EXPECTED_COUNT); \
+            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
+        }
+
+    TEST_WRITE_HEX(0, 1, "0");
+    TEST_WRITE_HEX(0xff, 2, "ff");
+
+#    undef TEST_WRITE_HEX
+}
+
+#endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 3 "src/format/i64.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
@@ -859,7 +995,7 @@ GSHL_TEST(write_usize)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 18 "src/format/mod.c"
+#    line 20 "src/format/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 
 
@@ -991,21 +1127,39 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
          */
         if (formatC[0] == '%') {
             switch (formatC[1]) {
-            case 'i':
-            case 's':
-            case 'u':
-            case 'c':
-            case 'f':
-            case 'p':
-            case '%':
-            case 'x':
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE) case SPECIFIER:
+#define TL(...)
+            case 'o':
+                GSHL_FILL_TEMPLATE
                 result.templates.count += 1;
                 formatEnd = (char *)formatC + 1;
                 break;
+#undef T
+#undef TL
+#undef TV
+            case 'l':
+                switch (formatC[2]) {
+#define T(...)
+#define TV(...)
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
+                    GSHL_FILL_TEMPLATE
+                    result.templates.count += 1;
+                    formatEnd = (char *)formatC + 1;
+                    break;
+#undef T
+#undef TL
+#undef TV
+                default:
+                    GSHL_UNREACHABLE(
+                        "Unknown template specifier \"%.*s\", format: \"%s\"",
+                        3, formatC, format);
+                }
+                break;
             default:
                 GSHL_UNREACHABLE(
-                    "Unknown template specifier '%c', format: \"%s\"",
-                    formatC[1], format);
+                    "Unknown template specifier \"%.*s\", format: \"%s\"", 2,
+                    formatC, format);
             }
         }
         else if ((formatC[0] == '}' && formatC[1] == '}') ||
@@ -1065,61 +1219,47 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 t->formatStart = formatC;
                 t->formatEnd = formatC + 2;
 
+                // %%
+                t->character = "\0%"[formatC[1] == '%'];
+
                 switch (formatC[1]) {
-                case 'i': {
-                    t->kind = GSHL_TEMPLATE_I32;
-                    t->i32 = va_arg(args, i32);
-                    t->write.i32 = write_i32;
-                    t->count = t->write.i32(NULL, t->i32, 0);
-                } break;
-
-                case 'u': {
-                    t->kind = GSHL_TEMPLATE_U32;
-                    t->i32 = va_arg(args, u32);
-                    t->write.u32 = write_u32;
-                    t->count = t->write.u32(NULL, t->u32, 0);
-                } break;
-
-                case 'c': {
-                    t->kind = GSHL_TEMPLATE_CHAR;
-                    t->character = va_arg(args, int);
-                    t->write.character = write_character;
-                    t->count = t->write.character(NULL, t->character, 0);
-                } break;
-
-                case 's': {
-                    t->kind = GSHL_TEMPLATE_CSTRING;
-                    t->cstring = va_arg(args, char *);
-                    t->write.cstring = write_cstring;
-                    t->count = t->write.cstring(NULL, t->cstring, 0);
-                } break;
-
-                case 'p': {
-                    t->kind = GSHL_TEMPLATE_POINTER;
-                    t->pointer = va_arg(args, void *);
-                    t->write.pointer = write_pointer;
-                    t->count = t->write.pointer(NULL, t->pointer, 0);
-                } break;
-
-                case '%': {
-                    t->kind = GSHL_TEMPLATE_CHAR;
-                    t->character = '%';
-                    t->write.character = write_character;
-                    t->count = t->write.character(NULL, t->character, 0);
-                } break;
-
-                case 'x': {
-                    t->kind = GSHL_TEMPLATE_HEXADECIMAL;
-                    t->hex = va_arg(args, u32);
-                    t->write.hex = write_hex;
-                    t->count = t->write.hex(NULL, t->hex, 0);
-                } break;
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                            \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE)                                 \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = VALUE;                                                       \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+#define TL(...)
+                    GSHL_FILL_TEMPLATE
+#undef T
+#undef TL
+#undef TV
 
                 case 'l': {
                     t->formatEnd = formatC + 3;
-                    GSHL_TODO("Template l not implemented yet!");
 
                     switch (formatC[2]) {
+#define T(...)
+#define TV(...)
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                           \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+                        GSHL_FILL_TEMPLATE
+#undef T
+#undef TL
+#undef TV
                     }
                 } break;
 
@@ -1202,7 +1342,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
     }
 #endif
 
-#if GSHL_FORMAT_DEBUG
+#if GSHL_FORMAT_DEBUG > 0
     GSHL_FORMAT_DEBUG_PRINT("result.count = %lu\n", result.count);
     result.string = malloc((result.count + 1) * sizeof(*result.string));
     memset(result.string, ' ', result.count * sizeof(*result.string));
@@ -1249,7 +1389,6 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                         template.kind);
             }
 #endif
-
             switch (template.kind) {
 #define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
     case GSHL_TEMPLATE_##ENUM:                                                 \
@@ -1260,7 +1399,8 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
 #undef KIND
             default:
                 GSHL_UNREACHABLE(
-                    "Template write not implemented yet '%.*s', format: \"%s\"",
+                    "Template write not implemented yet '%.*s', format: "
+                    "\"%s\"",
                     (int)(template.formatEnd - template.formatStart),
                     template.formatStart, format);
                 break;
@@ -1433,22 +1573,22 @@ GSHL_TEST(format_wrapper)
         "%%")
 
     TEST_FORMAT_WRAPPER_RESULT(
-        "0x69", 4,
+        "69", 2,
         {
             GSHL_TEST_EQUAL(result.templates.count, 1);
             GSHL_TEST_EQUAL(templates[0].kind, GSHL_TEMPLATE_HEXADECIMAL);
             GSHL_TEST_EQUAL(templates[0].hex, 0x69);
-            GSHL_TEST_EQUAL(templates[0].count, 4);
+            GSHL_TEST_EQUAL(templates[0].count, 2);
         },
         "%x", 105UL)
 
     TEST_FORMAT_WRAPPER_RESULT(
-        "0x69 24", 7,
+        "69 24", 5,
         {
             GSHL_TEST_EQUAL(result.templates.count, 2);
             GSHL_TEST_EQUAL(templates[0].kind, GSHL_TEMPLATE_HEXADECIMAL);
             GSHL_TEST_EQUAL(templates[0].hex, 105UL);
-            GSHL_TEST_EQUAL(templates[0].count, 4);
+            GSHL_TEST_EQUAL(templates[0].count, 2);
             GSHL_TEST_EQUAL(templates[1].kind, GSHL_TEMPLATE_I32);
             GSHL_TEST_EQUAL(templates[1].i32, 24);
             GSHL_TEST_EQUAL(templates[1].count, 2);
@@ -1535,6 +1675,87 @@ GSHL_TEST(format_wrapper)
     //     },
     //     "{f32} %f {f64} %lf", 3.14f, 3.14f, 3.14, 3.14);
 
+#    if 0
+
+#        define ALL_FORMAT                                                     \
+            /* X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) */            \
+            X("(%%b:  0b%b) ", "(%b:  0b10101) ", 0b10101, 5)                  \
+            X("(%%B:  %B) ", "(%B:  true) ", 1, 4)                             \
+            X("(%%c:  %c) ", "(%c:  F) ", 'F', 1)                              \
+            X("(%%d:  %d) ", "(%d:  -34) ", -34, 3)                            \
+            X("(%%i:  %i) ", "(%i:  -35) ", -35, 3)                            \
+            X2("(%%f:  %f) ", "(%f:  -69.0) ", -69.f, 5)                       \
+            X("(%%p:  %p) ", "(%p:  0x7ffc0d1b64f4) ", 0x7ffc0d1b64f4, 12)     \
+            X("(%%p:  %p) ", "(%p:  nil) ", NULL, 3)                           \
+            X("(%%s:  \"%s\") ", "(%s:  \"Hello world!\") ", "Hello world!",   \
+              12)                                                              \
+            X("(%%u:  %u) ", "(%u:  69) ", 69, 2)                              \
+            X("(%%x:  0x%x) ", "(%x:  0xff00ff) ", 0xFF00FF, 6)                \
+            X("(%%X:  0x%X) ", "(%X:  0xCAFEBABE) ", 0xCAFEBABE, 8)            \
+            X("(%%lb: 0b%lb) ", "(%lb: 0b1011) ", 0b1011, 4)                   \
+            X2("(%%lf: %lf) ", "(%lf: 34.14) ", 34.14, 5)                      \
+            X("(%%li: %li) ", "(%li: -69) ", -69, 3)                           \
+            X("(%%lu: %lu) ", "(%lu: 69) ", 69, 2)                             \
+            X("(%%lx: 0x%lx) ", "(%lx: 0x123456789abcde) ", 0x0123456789abcde, \
+              15)                                                              \
+            X("(%%lX: 0x%lX) ", "(%lX: 0X123456789ABCDE) ", 0X0123456789ABCDE, \
+              15)                                                              \
+            X("({{i8}}:    {i8}) ", "({i8}:    127) ", 127, 3)                 \
+            X("({{i16}}:   {i16}) ", "({i16}:   -34) ", -34, 3)                \
+            X("({{i32}}:   {i32}) ", "({i32}:   -35) ", -35, 3)                \
+            X("({{i64}}:   {i64}) ", "({i64}:   -69) ", -69, 3)                \
+            X("({{isize}}: {isize}) ", "({isize}: -420) ", -420, 4)            \
+            X("({{u8}}:    {u8}) ", "({u8}:    255) ", 255, 3)                 \
+            X("({{u16}}:   {u16}) ", "({u16}:   34) ", 34, 2)                  \
+            X("({{u32}}:   {u32}) ", "({u32}:   35) ", 35, 2)                  \
+            X("({{u64}}:   {u64}) ", "({u64}:   69) ", 69, 2)                  \
+            X("({{usize}}: {usize}) ", "({usize}: 420) ", 420, 3)              \
+            X("({{boolean}}: {boolean}) ", "({boolean}: false) ", false, 5)    \
+            X("({{boolean}}: {boolean}) ", "({boolean}: true) ", true, 4)      \
+            X("({{binary}}: 0b{binary}) ", "({binary}: 0b1011) ", 0b1011, 4)   \
+            X2("({{f32}}: {f32}) ", "({f32}: {f32}) ", 0, 0)                   \
+            X2("({{f64}}: {f64}) ", "({f64}: {f64}) ", 0, 0)
+
+    {
+        const char format[] =
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) FORMAT
+#        define X2(...)
+            ALL_FORMAT
+#        undef X
+#        undef X2
+            ;
+
+        const char expected[] =
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT)              \
+            EXPECTED_FORMAT
+#        define X2(...)
+            ALL_FORMAT
+#        undef X
+#        undef X2
+            ;
+
+        const usize count = sizeof(expected) - 1;
+
+        GSHL_FormatWrapperResult result = GSHL_format_wrapper(format
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) , VALUE
+#        define X2(...)
+                                                                  ALL_FORMAT
+#        undef X
+#        undef X2
+        );
+
+        GSHL_TEST_STR_EQUAL(result.string, expected, .align_on_new_line = true);
+        GSHL_TEST_EQUAL(result.count, count);
+
+        do {
+            GSHL_Template *templates = result.templates.items;
+            GSHL_UNUSED(templates);
+        } while (0);
+
+        GSHL_free_FormatWrapperResult(&result);
+    }
+#    endif
+
 #    undef TEST_FORMAT_WRAPPER_RESULT
 }
 
@@ -1609,6 +1830,68 @@ GSHL_TEST(write_isize)
     TEST_WRITE_isize(-534, 4, "-534");
     // TEST_WRITE_isize(ISIZE_MAX, 10, "2147483647");
 #    undef TEST_WRITE_isize
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 2 "src/format/binary.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+
+
+#include <stdlib.h>
+
+usize write_binary(char *buf, const u64 binary, const usize precomputed_count)
+{
+    if (buf == NULL || precomputed_count == 0) {
+        usize count = 0;
+        u64 remaining = binary;
+
+        do {
+            count += 1;
+            remaining >>= 1;
+        } while (remaining != 0);
+
+        return count;
+    }
+
+    usize count = 0;
+    u64 remaining = binary;
+    do {
+        count += 1;
+
+        buf[precomputed_count - count] = "01"[remaining & 1];
+
+        remaining >>= 1;
+    } while (remaining != 0);
+
+    GSHL_ASSERT(count == precomputed_count);
+
+    return precomputed_count;
+}
+
+#ifdef GSHL_TESTS
+#    include "test/mod.h"
+
+GSHL_TEST(write_binary)
+{
+#    define TEST_WRITE_BINARY(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)         \
+        {                                                                      \
+            char buffer[256] = {0};                                            \
+            const usize count = write_binary(NULL, NUMBER, 0);                 \
+            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
+            GSHL_TEST_EQUAL(write_binary(buffer, NUMBER, count),               \
+                            EXPECTED_COUNT);                                   \
+            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
+        }
+
+    TEST_WRITE_BINARY(0, 1, "0");
+    TEST_WRITE_BINARY(0b10101, 5, "10101");
+    TEST_WRITE_BINARY(1 << 5, 6, "100000");
+    TEST_WRITE_BINARY(
+        ~0L, 64,
+        "1111111111111111111111111111111111111111111111111111111111111111");
+    TEST_WRITE_BINARY(0xFF, 8, "11111111");
+#    undef TEST_WRITE_BINARY
 }
 
 #endif
@@ -1699,6 +1982,31 @@ usize write_pointer(char *buf, const void *pointer,
 
     return precomputed_count;
 }
+
+#ifdef GSHL_TESTS
+
+#    include "test/mod.h"
+
+GSHL_TEST(write_pointer)
+{
+#    define TEST_WRITE_POINTER(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)        \
+        {                                                                      \
+            char buffer[256] = {0};                                            \
+            const usize count = write_pointer(NULL, NUMBER, 0);                \
+            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
+            GSHL_TEST_EQUAL(write_pointer(buffer, NUMBER, count),              \
+                            EXPECTED_COUNT);                                   \
+            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
+        }
+
+    TEST_WRITE_POINTER(0, 3, "nil");
+    TEST_WRITE_POINTER(NULL, 3, "nil");
+    TEST_WRITE_POINTER((void *)0x7ffc0d1b64f4, 14, "0x7ffc0d1b64f4");
+
+#    undef TEST_WRITE_POINTER
+}
+
+#endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 2 "src/format/char.c"
 #endif // GSHL_SOURCE_CODE_MAPPING

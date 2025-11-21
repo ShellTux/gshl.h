@@ -42,3 +42,28 @@ usize write_pointer(char *buf, const void *pointer,
 
     return precomputed_count;
 }
+
+#ifdef GSHL_TESTS
+
+#    include "test/mod.h"
+
+GSHL_TEST(write_pointer)
+{
+#    define TEST_WRITE_POINTER(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)        \
+        {                                                                      \
+            char buffer[256] = {0};                                            \
+            const usize count = write_pointer(NULL, NUMBER, 0);                \
+            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
+            GSHL_TEST_EQUAL(write_pointer(buffer, NUMBER, count),              \
+                            EXPECTED_COUNT);                                   \
+            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
+        }
+
+    TEST_WRITE_POINTER(0, 3, "nil");
+    TEST_WRITE_POINTER(NULL, 3, "nil");
+    TEST_WRITE_POINTER((void *)0x7ffc0d1b64f4, 14, "0x7ffc0d1b64f4");
+
+#    undef TEST_WRITE_POINTER
+}
+
+#endif

@@ -1,4 +1,6 @@
 #include "format/mod.h"
+#include "format/binary.h"  // IWYU pragma: keep
+#include "format/bool.h"    // IWYU pragma: keep
 #include "format/char.h"    // IWYU pragma: keep
 #include "format/cstring.h" // IWYU pragma: keep
 #include "format/f32.h"     // IWYU pragma: keep
@@ -148,21 +150,39 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
          */
         if (formatC[0] == '%') {
             switch (formatC[1]) {
-            case 'i':
-            case 's':
-            case 'u':
-            case 'c':
-            case 'f':
-            case 'p':
-            case '%':
-            case 'x':
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE) case SPECIFIER:
+#define TL(...)
+            case 'o':
+                GSHL_FILL_TEMPLATE
                 result.templates.count += 1;
                 formatEnd = (char *)formatC + 1;
                 break;
+#undef T
+#undef TL
+#undef TV
+            case 'l':
+                switch (formatC[2]) {
+#define T(...)
+#define TV(...)
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
+                    GSHL_FILL_TEMPLATE
+                    result.templates.count += 1;
+                    formatEnd = (char *)formatC + 1;
+                    break;
+#undef T
+#undef TL
+#undef TV
+                default:
+                    GSHL_UNREACHABLE(
+                        "Unknown template specifier \"%.*s\", format: \"%s\"",
+                        3, formatC, format);
+                }
+                break;
             default:
                 GSHL_UNREACHABLE(
-                    "Unknown template specifier '%c', format: \"%s\"",
-                    formatC[1], format);
+                    "Unknown template specifier \"%.*s\", format: \"%s\"", 2,
+                    formatC, format);
             }
         }
         else if ((formatC[0] == '}' && formatC[1] == '}') ||
@@ -222,61 +242,47 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 t->formatStart = formatC;
                 t->formatEnd = formatC + 2;
 
+                // %%
+                t->character = "\0%"[formatC[1] == '%'];
+
                 switch (formatC[1]) {
-                case 'i': {
-                    t->kind = GSHL_TEMPLATE_I32;
-                    t->i32 = va_arg(args, i32);
-                    t->write.i32 = write_i32;
-                    t->count = t->write.i32(NULL, t->i32, 0);
-                } break;
-
-                case 'u': {
-                    t->kind = GSHL_TEMPLATE_U32;
-                    t->i32 = va_arg(args, u32);
-                    t->write.u32 = write_u32;
-                    t->count = t->write.u32(NULL, t->u32, 0);
-                } break;
-
-                case 'c': {
-                    t->kind = GSHL_TEMPLATE_CHAR;
-                    t->character = va_arg(args, int);
-                    t->write.character = write_character;
-                    t->count = t->write.character(NULL, t->character, 0);
-                } break;
-
-                case 's': {
-                    t->kind = GSHL_TEMPLATE_CSTRING;
-                    t->cstring = va_arg(args, char *);
-                    t->write.cstring = write_cstring;
-                    t->count = t->write.cstring(NULL, t->cstring, 0);
-                } break;
-
-                case 'p': {
-                    t->kind = GSHL_TEMPLATE_POINTER;
-                    t->pointer = va_arg(args, void *);
-                    t->write.pointer = write_pointer;
-                    t->count = t->write.pointer(NULL, t->pointer, 0);
-                } break;
-
-                case '%': {
-                    t->kind = GSHL_TEMPLATE_CHAR;
-                    t->character = '%';
-                    t->write.character = write_character;
-                    t->count = t->write.character(NULL, t->character, 0);
-                } break;
-
-                case 'x': {
-                    t->kind = GSHL_TEMPLATE_HEXADECIMAL;
-                    t->hex = va_arg(args, u32);
-                    t->write.hex = write_hex;
-                    t->count = t->write.hex(NULL, t->hex, 0);
-                } break;
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                            \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE)                                 \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = VALUE;                                                       \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+#define TL(...)
+                    GSHL_FILL_TEMPLATE
+#undef T
+#undef TL
+#undef TV
 
                 case 'l': {
                     t->formatEnd = formatC + 3;
-                    GSHL_TODO("Template l not implemented yet!");
 
                     switch (formatC[2]) {
+#define T(...)
+#define TV(...)
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                           \
+    case SPECIFIER: {                                                          \
+        t->kind = GSHL_TEMPLATE_##ENUM;                                        \
+        t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->write.NAME = write_##NAME;                                          \
+        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+    } break;
+                        GSHL_FILL_TEMPLATE
+#undef T
+#undef TL
+#undef TV
                     }
                 } break;
 
@@ -359,7 +365,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
     }
 #endif
 
-#if GSHL_FORMAT_DEBUG
+#if GSHL_FORMAT_DEBUG > 0
     GSHL_FORMAT_DEBUG_PRINT("result.count = %lu\n", result.count);
     result.string = malloc((result.count + 1) * sizeof(*result.string));
     memset(result.string, ' ', result.count * sizeof(*result.string));
@@ -406,7 +412,6 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                         template.kind);
             }
 #endif
-
             switch (template.kind) {
 #define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
     case GSHL_TEMPLATE_##ENUM:                                                 \
@@ -417,7 +422,8 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
 #undef KIND
             default:
                 GSHL_UNREACHABLE(
-                    "Template write not implemented yet '%.*s', format: \"%s\"",
+                    "Template write not implemented yet '%.*s', format: "
+                    "\"%s\"",
                     (int)(template.formatEnd - template.formatStart),
                     template.formatStart, format);
                 break;
@@ -590,22 +596,22 @@ GSHL_TEST(format_wrapper)
         "%%")
 
     TEST_FORMAT_WRAPPER_RESULT(
-        "0x69", 4,
+        "69", 2,
         {
             GSHL_TEST_EQUAL(result.templates.count, 1);
             GSHL_TEST_EQUAL(templates[0].kind, GSHL_TEMPLATE_HEXADECIMAL);
             GSHL_TEST_EQUAL(templates[0].hex, 0x69);
-            GSHL_TEST_EQUAL(templates[0].count, 4);
+            GSHL_TEST_EQUAL(templates[0].count, 2);
         },
         "%x", 105UL)
 
     TEST_FORMAT_WRAPPER_RESULT(
-        "0x69 24", 7,
+        "69 24", 5,
         {
             GSHL_TEST_EQUAL(result.templates.count, 2);
             GSHL_TEST_EQUAL(templates[0].kind, GSHL_TEMPLATE_HEXADECIMAL);
             GSHL_TEST_EQUAL(templates[0].hex, 105UL);
-            GSHL_TEST_EQUAL(templates[0].count, 4);
+            GSHL_TEST_EQUAL(templates[0].count, 2);
             GSHL_TEST_EQUAL(templates[1].kind, GSHL_TEMPLATE_I32);
             GSHL_TEST_EQUAL(templates[1].i32, 24);
             GSHL_TEST_EQUAL(templates[1].count, 2);
@@ -691,6 +697,87 @@ GSHL_TEST(format_wrapper)
     //         GSHL_TEST_EQUAL(templates[3].count, 4);
     //     },
     //     "{f32} %f {f64} %lf", 3.14f, 3.14f, 3.14, 3.14);
+
+#    if 0
+
+#        define ALL_FORMAT                                                     \
+            /* X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) */            \
+            X("(%%b:  0b%b) ", "(%b:  0b10101) ", 0b10101, 5)                  \
+            X("(%%B:  %B) ", "(%B:  true) ", 1, 4)                             \
+            X("(%%c:  %c) ", "(%c:  F) ", 'F', 1)                              \
+            X("(%%d:  %d) ", "(%d:  -34) ", -34, 3)                            \
+            X("(%%i:  %i) ", "(%i:  -35) ", -35, 3)                            \
+            X2("(%%f:  %f) ", "(%f:  -69.0) ", -69.f, 5)                       \
+            X("(%%p:  %p) ", "(%p:  0x7ffc0d1b64f4) ", 0x7ffc0d1b64f4, 12)     \
+            X("(%%p:  %p) ", "(%p:  nil) ", NULL, 3)                           \
+            X("(%%s:  \"%s\") ", "(%s:  \"Hello world!\") ", "Hello world!",   \
+              12)                                                              \
+            X("(%%u:  %u) ", "(%u:  69) ", 69, 2)                              \
+            X("(%%x:  0x%x) ", "(%x:  0xff00ff) ", 0xFF00FF, 6)                \
+            X("(%%X:  0x%X) ", "(%X:  0xCAFEBABE) ", 0xCAFEBABE, 8)            \
+            X("(%%lb: 0b%lb) ", "(%lb: 0b1011) ", 0b1011, 4)                   \
+            X2("(%%lf: %lf) ", "(%lf: 34.14) ", 34.14, 5)                      \
+            X("(%%li: %li) ", "(%li: -69) ", -69, 3)                           \
+            X("(%%lu: %lu) ", "(%lu: 69) ", 69, 2)                             \
+            X("(%%lx: 0x%lx) ", "(%lx: 0x123456789abcde) ", 0x0123456789abcde, \
+              15)                                                              \
+            X("(%%lX: 0x%lX) ", "(%lX: 0X123456789ABCDE) ", 0X0123456789ABCDE, \
+              15)                                                              \
+            X("({{i8}}:    {i8}) ", "({i8}:    127) ", 127, 3)                 \
+            X("({{i16}}:   {i16}) ", "({i16}:   -34) ", -34, 3)                \
+            X("({{i32}}:   {i32}) ", "({i32}:   -35) ", -35, 3)                \
+            X("({{i64}}:   {i64}) ", "({i64}:   -69) ", -69, 3)                \
+            X("({{isize}}: {isize}) ", "({isize}: -420) ", -420, 4)            \
+            X("({{u8}}:    {u8}) ", "({u8}:    255) ", 255, 3)                 \
+            X("({{u16}}:   {u16}) ", "({u16}:   34) ", 34, 2)                  \
+            X("({{u32}}:   {u32}) ", "({u32}:   35) ", 35, 2)                  \
+            X("({{u64}}:   {u64}) ", "({u64}:   69) ", 69, 2)                  \
+            X("({{usize}}: {usize}) ", "({usize}: 420) ", 420, 3)              \
+            X("({{boolean}}: {boolean}) ", "({boolean}: false) ", false, 5)    \
+            X("({{boolean}}: {boolean}) ", "({boolean}: true) ", true, 4)      \
+            X("({{binary}}: 0b{binary}) ", "({binary}: 0b1011) ", 0b1011, 4)   \
+            X2("({{f32}}: {f32}) ", "({f32}: {f32}) ", 0, 0)                   \
+            X2("({{f64}}: {f64}) ", "({f64}: {f64}) ", 0, 0)
+
+    {
+        const char format[] =
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) FORMAT
+#        define X2(...)
+            ALL_FORMAT
+#        undef X
+#        undef X2
+            ;
+
+        const char expected[] =
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT)              \
+            EXPECTED_FORMAT
+#        define X2(...)
+            ALL_FORMAT
+#        undef X
+#        undef X2
+            ;
+
+        const usize count = sizeof(expected) - 1;
+
+        GSHL_FormatWrapperResult result = GSHL_format_wrapper(format
+#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) , VALUE
+#        define X2(...)
+                                                                  ALL_FORMAT
+#        undef X
+#        undef X2
+        );
+
+        GSHL_TEST_STR_EQUAL(result.string, expected, .align_on_new_line = true);
+        GSHL_TEST_EQUAL(result.count, count);
+
+        do {
+            GSHL_Template *templates = result.templates.items;
+            GSHL_UNUSED(templates);
+        } while (0);
+
+        GSHL_free_FormatWrapperResult(&result);
+    }
+#    endif
 
 #    undef TEST_FORMAT_WRAPPER_RESULT
 }
