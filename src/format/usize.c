@@ -5,7 +5,9 @@
 #include <assert.h>
 #include <string.h>
 
-usize write_usize(char *buf, const usize value, const usize precomputed_count)
+usize write_usize(char *buf, const usize value,
+                  const struct GSHL_TemplateOpts_usize opts,
+                  const usize precomputed_count)
 {
     if (buf == NULL || precomputed_count == 0) {
         usize usize_count = 0;
@@ -39,12 +41,13 @@ usize write_usize(char *buf, const usize value, const usize precomputed_count)
 
 GSHL_TEST(write_usize)
 {
-#    define TEST_WRITE_usize(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)          \
+#    define TEST_WRITE_usize(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)     \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const usize count = write_usize(NULL, NUMBER, 0);                  \
+            const struct GSHL_TemplateOpts_usize optsDef = {__VA_ARGS__};      \
+            const usize count = write_usize(NULL, NUMBER, optsDef, 0);         \
             GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_usize(buffer, NUMBER, count),                \
+            GSHL_TEST_EQUAL(write_usize(buffer, NUMBER, optsDef, count),       \
                             EXPECTED_COUNT);                                   \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }

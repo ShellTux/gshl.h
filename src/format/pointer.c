@@ -4,6 +4,7 @@
 #include <string.h>
 
 usize write_pointer(char *buf, const void *pointer,
+                    const struct GSHL_TemplateOpts_pointer opts,
                     const usize precomputed_count)
 {
     static const char prefix[] = "0x";
@@ -49,12 +50,13 @@ usize write_pointer(char *buf, const void *pointer,
 
 GSHL_TEST(write_pointer)
 {
-#    define TEST_WRITE_POINTER(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)        \
+#    define TEST_WRITE_POINTER(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)   \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const usize count = write_pointer(NULL, NUMBER, 0);                \
+            const struct GSHL_TemplateOpts_pointer optsDef = {__VA_ARGS__};    \
+            const usize count = write_pointer(NULL, NUMBER, optsDef, 0);       \
             GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_pointer(buffer, NUMBER, count),              \
+            GSHL_TEST_EQUAL(write_pointer(buffer, NUMBER, optsDef, count),     \
                             EXPECTED_COUNT);                                   \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }

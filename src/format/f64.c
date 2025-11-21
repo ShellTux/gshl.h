@@ -5,7 +5,9 @@
 
 #include <stdlib.h>
 
-usize write_f64(char *buf, const f64 value, const usize precomputed_count)
+usize write_f64(char *buf, const f64 value,
+                const struct GSHL_TemplateOpts_f64 opts,
+                const usize precomputed_count)
 {
     GSHL_UNUSED(buf);
     GSHL_UNUSED(value);

@@ -58,9 +58,9 @@ GSHL_TemplateKind GSHL_template_kind_from_str(char **format)
         GSHL_TemplateKind kind;
         const char strings[3][32]; // 3 allowed aliases with 31 characters max
     } conversion[] = {
-#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
     {GSHL_TEMPLATE_##ENUM, {__VA_ARGS__}},
-        GHSL_TEMPLATE_KINDS
+        GSHL_TEMPLATE_KINDS
 #undef KIND
     };
 
@@ -150,8 +150,8 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
          */
         if (formatC[0] == '%') {
             switch (formatC[1]) {
-#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
-#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE) case SPECIFIER:
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE, OPTS) case SPECIFIER:
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE, OPTS) case SPECIFIER:
 #define TL(...)
             case 'o':
                 GSHL_FILL_TEMPLATE
@@ -165,7 +165,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 switch (formatC[2]) {
 #define T(...)
 #define TV(...)
-#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE) case SPECIFIER:
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE, OPTS) case SPECIFIER:
                     GSHL_FILL_TEMPLATE
                     result.templates.count += 1;
                     formatEnd = (char *)formatC + 1;
@@ -246,19 +246,21 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 t->character = "\0%"[formatC[1] == '%'];
 
                 switch (formatC[1]) {
-#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                            \
+#define T(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE, OPTS)                      \
     case SPECIFIER: {                                                          \
         t->kind = GSHL_TEMPLATE_##ENUM;                                        \
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
     } break;
-#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE)                                 \
+#define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE, OPTS)                           \
     case SPECIFIER: {                                                          \
         t->kind = GSHL_TEMPLATE_##ENUM;                                        \
         t->NAME = VALUE;                                                       \
+        t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
     } break;
 #define TL(...)
                     GSHL_FILL_TEMPLATE
@@ -272,12 +274,13 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                     switch (formatC[2]) {
 #define T(...)
 #define TV(...)
-#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE)                           \
+#define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE, OPTS)                     \
     case SPECIFIER: {                                                          \
         t->kind = GSHL_TEMPLATE_##ENUM;                                        \
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
+        t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
     } break;
                         GSHL_FILL_TEMPLATE
 #undef T
@@ -305,7 +308,9 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 t->kind = GSHL_TEMPLATE_CHAR;
                 t->character = formatC[1];
                 t->write.character = write_character;
-                t->count = t->write.character(NULL, t->character, 0);
+                t->count = t->write.character(
+                    NULL, t->character, (struct GSHL_TemplateOpts_character){},
+                    0);
 
                 result.count += t->count;
 
@@ -317,13 +322,13 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
 
                 t->kind = GSHL_template_kind_from_str(&formatC);
                 switch (t->kind) {
-#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
     case GSHL_TEMPLATE_##ENUM:                                                 \
         t->write.NAME = write_##NAME;                                          \
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
-        t->count = t->write.NAME(NULL, t->NAME, 0);                            \
+        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
         break;
-                    GHSL_TEMPLATE_KINDS
+                    GSHL_TEMPLATE_KINDS
 #undef KIND
                 default:
                     GSHL_UNREACHABLE("Unknown kind: %d", t->kind);
@@ -413,12 +418,13 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
             }
 #endif
             switch (template.kind) {
-#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, ...)                    \
+#define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
     case GSHL_TEMPLATE_##ENUM:                                                 \
-        output += template.write.NAME(output, template.NAME, template.count);  \
+        output += template.write.NAME(output, template.NAME,                   \
+                                      template.opts.NAME, template.count);     \
         GSHL_FORMAT_DEBUG_PRINT(" result.string = \"%s\"\n", result.string);   \
         break;
-                GHSL_TEMPLATE_KINDS
+                GSHL_TEMPLATE_KINDS
 #undef KIND
             default:
                 GSHL_UNREACHABLE(
@@ -698,81 +704,113 @@ GSHL_TEST(format_wrapper)
     //     },
     //     "{f32} %f {f64} %lf", 3.14f, 3.14f, 3.14, 3.14);
 
-#    if 0
+#    if 1
 
 #        define ALL_FORMAT                                                     \
             /* X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) */            \
-            X("(%%b:  0b%b) ", "(%b:  0b10101) ", 0b10101, 5)                  \
-            X("(%%B:  %B) ", "(%B:  true) ", 1, 4)                             \
-            X("(%%c:  %c) ", "(%c:  F) ", 'F', 1)                              \
-            X("(%%d:  %d) ", "(%d:  -34) ", -34, 3)                            \
-            X("(%%i:  %i) ", "(%i:  -35) ", -35, 3)                            \
-            X2("(%%f:  %f) ", "(%f:  -69.0) ", -69.f, 5)                       \
-            X("(%%p:  %p) ", "(%p:  0x7ffc0d1b64f4) ", 0x7ffc0d1b64f4, 12)     \
-            X("(%%p:  %p) ", "(%p:  nil) ", NULL, 3)                           \
-            X("(%%s:  \"%s\") ", "(%s:  \"Hello world!\") ", "Hello world!",   \
-              12)                                                              \
-            X("(%%u:  %u) ", "(%u:  69) ", 69, 2)                              \
-            X("(%%x:  0x%x) ", "(%x:  0xff00ff) ", 0xFF00FF, 6)                \
-            X("(%%X:  0x%X) ", "(%X:  0xCAFEBABE) ", 0xCAFEBABE, 8)            \
-            X("(%%lb: 0b%lb) ", "(%lb: 0b1011) ", 0b1011, 4)                   \
-            X2("(%%lf: %lf) ", "(%lf: 34.14) ", 34.14, 5)                      \
-            X("(%%li: %li) ", "(%li: -69) ", -69, 3)                           \
-            X("(%%lu: %lu) ", "(%lu: 69) ", 69, 2)                             \
-            X("(%%lx: 0x%lx) ", "(%lx: 0x123456789abcde) ", 0x0123456789abcde, \
-              15)                                                              \
-            X("(%%lX: 0x%lX) ", "(%lX: 0X123456789ABCDE) ", 0X0123456789ABCDE, \
-              15)                                                              \
-            X("({{i8}}:    {i8}) ", "({i8}:    127) ", 127, 3)                 \
-            X("({{i16}}:   {i16}) ", "({i16}:   -34) ", -34, 3)                \
-            X("({{i32}}:   {i32}) ", "({i32}:   -35) ", -35, 3)                \
-            X("({{i64}}:   {i64}) ", "({i64}:   -69) ", -69, 3)                \
-            X("({{isize}}: {isize}) ", "({isize}: -420) ", -420, 4)            \
-            X("({{u8}}:    {u8}) ", "({u8}:    255) ", 255, 3)                 \
-            X("({{u16}}:   {u16}) ", "({u16}:   34) ", 34, 2)                  \
-            X("({{u32}}:   {u32}) ", "({u32}:   35) ", 35, 2)                  \
-            X("({{u64}}:   {u64}) ", "({u64}:   69) ", 69, 2)                  \
-            X("({{usize}}: {usize}) ", "({usize}: 420) ", 420, 3)              \
-            X("({{boolean}}: {boolean}) ", "({boolean}: false) ", false, 5)    \
-            X("({{boolean}}: {boolean}) ", "({boolean}: true) ", true, 4)      \
-            X("({{binary}}: 0b{binary}) ", "({binary}: 0b1011) ", 0b1011, 4)   \
-            X2("({{f32}}: {f32}) ", "({f32}: {f32}) ", 0, 0)                   \
-            X2("({{f64}}: {f64}) ", "({f64}: {f64}) ", 0, 0)
+            X1("(%%b:  0b%b) ", "(%b:  0b10101) ", 0b10101, 5)                 \
+            X1("(%%B:  %B) ", "(%B:  true) ", 1, 4)                            \
+            X1("(%%c:  %c) ", "(%c:  F) ", 'F', 1)                             \
+            X1("(%%d:  %d) ", "(%d:  -34) ", -34, 3)                           \
+            X1("(%%i:  %i) ", "(%i:  -35) ", -35, 3)                           \
+            X0("(%%f:  %f) ", "(%f:  -69.0) ", -69.f, 5)                       \
+            X1("(%%p:  %p) ", "(%p:  0x7ffc0d1b64f4) ", 0x7ffc0d1b64f4, 14)    \
+            X1("(%%p:  %p) ", "(%p:  nil) ", NULL, 3)                          \
+            X1("(%%s:  \"%s\") ", "(%s:  \"Hello world!\") ", "Hello world!",  \
+               12)                                                             \
+            X1("(%%u:  %u) ", "(%u:  69) ", 69, 2)                             \
+            X1("(%%x:  0x%x) ", "(%x:  0xff00ff) ", 0xFF00FF, 6)               \
+            X1("(%%X:  0x%X) ", "(%X:  0xCAFEBABE) ", 0xCAFEBABE, 8)           \
+            X0("(%%lb: 0b%lb) ", "(%lb: 0b1011) ", 0b1011, 4)                  \
+            X0("(%%lf: %lf) ", "(%lf: 34.14) ", 34.14, 5)                      \
+            X0("(%%li: %li) ", "(%li: -69) ", -69, 3)                          \
+            X0("(%%lu: %lu) ", "(%lu: 69) ", 69, 2)                            \
+            X0("(%%lx: 0x%lx) ", "(%lx: 0x123456789abcdef) ",                  \
+               0x0123456789abcde, 15)                                          \
+            X0("(%%lX: 0x%lX) ", "(%lX: 0X123456789ABCDEF) ",                  \
+               0X0123456789ABCDEF, 15)                                         \
+            X0("({{i8}}:    {i8}) ", "({i8}:    127) ", 127, 3)                \
+            X0("({{i16}}:   {i16}) ", "({i16}:   -34) ", -34, 3)               \
+            X0("({{i32}}:   {i32}) ", "({i32}:   -35) ", -35, 3)               \
+            X0("({{i64}}:   {i64}) ", "({i64}:   -69) ", -69, 3)               \
+            X0("({{isize}}: {isize}) ", "({isize}: -420) ", -420, 4)           \
+            X0("({{u8}}:    {u8}) ", "({u8}:    255) ", 255, 3)                \
+            X0("({{u16}}:   {u16}) ", "({u16}:   34) ", 34, 2)                 \
+            X0("({{u32}}:   {u32}) ", "({u32}:   35) ", 35, 2)                 \
+            X0("({{u64}}:   {u64}) ", "({u64}:   69) ", 69, 2)                 \
+            X0("({{usize}}: {usize}) ", "({usize}: 420) ", 420, 3)             \
+            X0("({{boolean}}: {boolean}) ", "({boolean}: false) ", false, 5)   \
+            X0("({{boolean}}: {boolean}) ", "({boolean}: true) ", true, 4)     \
+            X0("({{binary}}: 0b{binary}) ", "({binary}: 0b1011) ", 0b1011, 4)  \
+            X0("({{f32}}: {f32}) ", "({f32}: {f32}) ", 0, 0)                   \
+            X0("({{f64}}: {f64}) ", "({f64}: {f64}) ", 0, 0)
 
     {
-        const char format[] =
-#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) FORMAT
-#        define X2(...)
+        const char format[] = ""
+#        define X0(...)
+#        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) FORMAT
+#        define X2(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) FORMAT
             ALL_FORMAT
-#        undef X
+#        undef X0
+#        undef X1
 #        undef X2
             ;
 
-        const char expected[] =
-#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT)              \
+        const char expected[] = ""
+#        define X0(...)
+#        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT)             \
             EXPECTED_FORMAT
-#        define X2(...)
             ALL_FORMAT
-#        undef X
-#        undef X2
+#        undef X0
+#        undef X1
             ;
 
         const usize count = sizeof(expected) - 1;
 
-        GSHL_FormatWrapperResult result = GSHL_format_wrapper(format
-#        define X(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) , VALUE
-#        define X2(...)
-                                                                  ALL_FORMAT
-#        undef X
+        const usize template_count = 0
+#        define X0(...)
+#        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) +2
+#        define X2(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) +3
+            ALL_FORMAT
+#        undef X0
+#        undef X1
 #        undef X2
+            ;
+
+        GSHL_FormatWrapperResult result = GSHL_format_wrapper(format
+#        define X0(...)
+#        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) , VALUE
+                                                                  ALL_FORMAT
+#        undef X0
+#        undef X1
         );
 
         GSHL_TEST_STR_EQUAL(result.string, expected, .align_on_new_line = true);
+        printf("result.count (%lu) == count (%lu)\n", result.count, count);
         GSHL_TEST_EQUAL(result.count, count);
 
+        usize template_index = 0;
         do {
             GSHL_Template *templates = result.templates.items;
             GSHL_UNUSED(templates);
+
+            GSHL_TEST_EQUAL(result.templates.count, template_count);
+
+#        define X0(...)
+#        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT)             \
+            /* printf("%s\n", FORMAT); */                                      \
+            GSHL_TEST_EQUAL(templates[template_index].kind,                    \
+                            GSHL_TEMPLATE_CHAR);                               \
+            GSHL_TEST_EQUAL(templates[template_index].count, 1);               \
+            GSHL_TEST_EQUAL(templates[template_index].character, '%');         \
+            GSHL_TEST_EQUAL(templates[template_index + 1].count,               \
+                            EXPECTED_COUNT);                                   \
+            template_index += 2;
+#        define X2(...)
+            ALL_FORMAT
+#        undef X0
+#        undef X1
+#        undef X2
         } while (0);
 
         GSHL_free_FormatWrapperResult(&result);

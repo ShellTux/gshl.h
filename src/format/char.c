@@ -6,6 +6,7 @@
 #include <string.h>
 
 usize write_character(char *buf, const char character,
+                      const struct GSHL_TemplateOpts_character opts,
                       const usize precomputed_count)
 {
     if (buf == NULL || precomputed_count == 0) {
@@ -24,12 +25,13 @@ usize write_character(char *buf, const char character,
 
 GSHL_TEST(write_char)
 {
-#    define TEST_WRITE_CHAR(CHAR, EXPECTED_COUNT, EXPECTED_STRING)             \
+#    define TEST_WRITE_CHAR(CHAR, EXPECTED_COUNT, EXPECTED_STRING, ...)        \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const usize count = write_character(NULL, CHAR, 0);                \
+            const struct GSHL_TemplateOpts_character optsDef = {__VA_ARGS__};  \
+            const usize count = write_character(NULL, CHAR, optsDef, 0);       \
             GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_character(buffer, CHAR, count),              \
+            GSHL_TEST_EQUAL(write_character(buffer, CHAR, optsDef, count),     \
                             EXPECTED_COUNT);                                   \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }

@@ -7,6 +7,7 @@
 #include <string.h>
 
 usize write_boolean(char *buf, const bool boolean,
+                    const struct GSHL_TemplateOpts_boolean opts,
                     const usize precomputed_count)
 {
     static const char *strings[] = {
@@ -35,12 +36,13 @@ usize write_boolean(char *buf, const bool boolean,
 
 GSHL_TEST(write_boolean)
 {
-#    define TEST_WRITE_BOOLEAN(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)        \
+#    define TEST_WRITE_BOOLEAN(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)   \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const usize count = write_boolean(NULL, NUMBER, 0);                \
+            const struct GSHL_TemplateOpts_boolean optsDef = {__VA_ARGS__};    \
+            const usize count = write_boolean(NULL, NUMBER, optsDef, 0);       \
             GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_boolean(buffer, NUMBER, count),              \
+            GSHL_TEST_EQUAL(write_boolean(buffer, NUMBER, optsDef, count),     \
                             EXPECTED_COUNT);                                   \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }

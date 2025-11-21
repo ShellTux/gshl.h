@@ -5,7 +5,9 @@
 
 #include <stdlib.h>
 
-usize write_binary(char *buf, const u64 binary, const usize precomputed_count)
+usize write_binary(char *buf, const u64 binary,
+                   const struct GSHL_TemplateOpts_binary opts,
+                   const usize precomputed_count)
 {
     if (buf == NULL || precomputed_count == 0) {
         usize count = 0;
@@ -39,12 +41,13 @@ usize write_binary(char *buf, const u64 binary, const usize precomputed_count)
 
 GSHL_TEST(write_binary)
 {
-#    define TEST_WRITE_BINARY(NUMBER, EXPECTED_COUNT, EXPECTED_STRING)         \
+#    define TEST_WRITE_BINARY(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)    \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const usize count = write_binary(NULL, NUMBER, 0);                 \
+            const struct GSHL_TemplateOpts_binary optsDef = {__VA_ARGS__};     \
+            const usize count = write_binary(NULL, NUMBER, optsDef, 0);        \
             GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_binary(buffer, NUMBER, count),               \
+            GSHL_TEST_EQUAL(write_binary(buffer, NUMBER, optsDef, count),      \
                             EXPECTED_COUNT);                                   \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }

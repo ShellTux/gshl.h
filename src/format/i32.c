@@ -3,7 +3,11 @@
 
 #include "types/mod.h"
 
-usize write_i32(char *buf, const i32 value, const usize precomputed_count)
+usize write_i32(char *buf, const i32 i32,
+                const struct GSHL_TemplateOpts_i32 opts,
+                const usize precomputed_count)
 {
-    return write_isize(buf, value, precomputed_count);
+    const struct GSHL_TemplateOpts_isize new_opts = {};
+
+    return write_isize(buf, i32, new_opts, precomputed_count);
 }
