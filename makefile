@@ -34,7 +34,7 @@ endif
 HEADERS := $(shell find $(INCLUDE_DIR) -name '*.h')
 SRCS := $(shell find src -name '*.c')
 
-gshl.h: include/macros/mod.h $(HEADERS) $(SRCS)
+gshl.h: include/macros/mod.h include/format/wrapper.h $(HEADERS) $(SRCS)
 	./single-header.sh $^
 
 ifndef BUILD_DIR
