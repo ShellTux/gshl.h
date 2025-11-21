@@ -53,10 +53,21 @@
                                                                                \
         if (strcmp((STR1), (STR2)) != 0) {                                     \
             *failed_tests += 1;                                                \
-            fprintf(stderr,                                                    \
+            if (opt.align_on_new_line) {                                       \
+                fprintf(                                                       \
+                    stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
+                        " FAILED ") " Assertion failed : \n\"%s\" == "         \
+                                    "\n\"%s\"\n",                              \
+                    __FILE__, __LINE__, __func__, STR1, STR2);                 \
+            }                                                                  \
+            else {                                                             \
+                fprintf(                                                       \
+                    stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
                         " FAILED ") " Assertion failed : \"%s\" == \"%s\"\n",  \
                     __FILE__, __LINE__, __func__, STR1, STR2);                 \
+            }                                                                  \
                                                                                \
             if (opt.continue_on_fail) {                                        \
                 return;                                                        \
@@ -85,6 +96,7 @@ typedef struct GSHL_Test {
 
 typedef struct {
     bool continue_on_fail;
+    bool align_on_new_line;
 } GSHL_TestEqualOpt;
 
 /// }}}
