@@ -52,6 +52,14 @@ src_deps="$(echo "$deps" | tr ' ' '\n' | grep '.c$' | awk '!seen[$0]++' | tr '\n
 
 for header in $header_deps
 do
+  echo "$header" | grep --quiet 'mod\.h$' || continue
+  grep --invert-match '^#include "' "$header" >> "$single_header" || true
+  printf '\033[32m%s\033[0m %s\n' ✓ "$header"
+done
+
+for header in $header_deps
+do
+  echo "$header" | grep --quiet 'mod\.h$' && continue
   grep --invert-match '^#include "' "$header" >> "$single_header" || true
   printf '\033[32m%s\033[0m %s\n' ✓ "$header"
 done
