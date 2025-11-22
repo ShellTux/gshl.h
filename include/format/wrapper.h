@@ -36,7 +36,9 @@
     /* KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...) */            \
     KIND(CSTRING, cstring, char *, char *, 0, {}, "cstring", "string", "s")    \
     KIND(CHAR, character, char, int, 1, {}, "character", "char", "c")          \
-    KIND(POINTER, pointer, void *, void *, 2, {}, "pointer", "p")              \
+    KIND(                                                                      \
+        POINTER, pointer, void *, void *, 2, { bool uppercase; }, "pointer",   \
+        "p")                                                                   \
     KIND(                                                                      \
         HEXADECIMAL, hex, unsigned long, usize, 3, { bool uppercase; },        \
         "hexadecimal", "hex", "h")                                             \
@@ -52,12 +54,17 @@
     KIND(USIZE, usize, usize, unsigned long, 13, {}, "usize")                  \
     KIND(F32, f32, f32, double, 14, {}, "f32")                                 \
     KIND(F64, f64, f64, double, 15, {}, "f64")                                 \
-    KIND(BOOL, boolean, bool, int, 16, {}, "boolean", "bool")                  \
+    KIND(BOOL, boolean, bool, unsigned int, 16, {}, "boolean", "bool")         \
     KIND(BINARY, binary, u64, unsigned int, 17, {}, "binary", "bin")
 
 /// }}}
 
 /// {{{ Types
+
+typedef struct GSHL_FormatWrapperOpts {
+    char *prefix;
+    char *suffix;
+} GSHL_FormatWrapperOpts;
 
 typedef enum GSHL_TemplateKind {
     GSHL_TEMPLATE_NONE = 0,
@@ -79,6 +86,7 @@ typedef struct GSHL_Template {
 #undef KIND
     };
 
+    // Options for this template
     union {
         struct GSHL_TemplateOptsNone {
             bool trash;
@@ -92,8 +100,7 @@ typedef struct GSHL_Template {
     // Function to write value into buf
     union {
 #define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
-    usize (*NAME)(char *, const TYPE, const struct GSHL_TemplateOpts_##NAME,   \
-                  const usize);
+    usize (*NAME)(char *, struct GSHL_Template *);
         GSHL_TEMPLATE_KINDS
 #undef KIND
     } write;
@@ -114,10 +121,20 @@ typedef struct GSHL_FormatWrapperResult {
 /// {{{ Functions
 
 GSHL_TemplateKind GSHL_template_kind_from_str(char **format);
-GSHL_FormatWrapperResult GSHL_format_wrapper(const char *restrict format, ...);
-GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
-                                              va_list args);
+GSHL_FormatWrapperResult
+GSHL_format_wrapper(const char *restrict format,
+                    const GSHL_FormatWrapperOpts formatOpts, ...);
+GSHL_FormatWrapperResult
+GSHL_format_wrapperv(const char *restrict format,
+                     const GSHL_FormatWrapperOpts formatOpts, va_list args);
+usize GSHL_format_wrapper_result_countv(const char *restrict format,
+                                        const GSHL_FormatWrapperOpts opts,
+                                        va_list args);
 void GSHL_free_FormatWrapperResult(struct GSHL_FormatWrapperResult *result);
+void *GSHL_format_memwrite(void **bufP, const void *src, const usize len);
+void GSHL_format_register_debug(const char *restrict template,
+                                usize (*write)(char *buf, const void *,
+                                               const usize));
 
 /// }}}
 
@@ -125,6 +142,8 @@ void GSHL_free_FormatWrapperResult(struct GSHL_FormatWrapperResult *result);
 #    define format_wrapper GSHL_format_wrapper
 #    define format_wrapperv GSHL_format_wrapperv
 #    define free_FormatWrapperResult GHSL_free_FormatWrapperResult
+#    define format_register_debug GSHL_format_register_debug
+#    define format_memwrite GSHL_format_memwrite
 #endif // GSHL_STRIP_PREFIX
 
 #endif // INCLUDE_FORMAT_WRAPPER_H_

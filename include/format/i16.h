@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_i16(char *buf, const i16 i16,
-                const struct GSHL_TemplateOpts_i16 opts,
-                const usize precomputed_count);
+usize write_i16(char *buf, GSHL_Template *template);
 
 /// }}}
 

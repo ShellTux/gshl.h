@@ -1,13 +1,16 @@
 #include "format/i64.h"
 #include "format/isize.h"
 
+#include "macros/mod.h"
 #include "types/mod.h"
 
-usize write_i64(char *buf, const i64 i64,
-                const struct GSHL_TemplateOpts_i64 opts,
-                const usize precomputed_count)
-{
-    const struct GSHL_TemplateOpts_isize new_opts = {};
+#include <assert.h>
 
-    return write_isize(buf, i64, new_opts, precomputed_count);
+usize write_i64(char *buf, GSHL_Template *t_mut)
+{
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_I64);
+
+    return write_isize(buf, t_mut);
 }

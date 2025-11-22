@@ -1,22 +1,27 @@
 #include "format/char.h"
 
+#include "macros/mod.h"
+#include "string/mod.h"
 #include "types/mod.h"
 
 #include <assert.h>
 #include <string.h>
 
-usize write_character(char *buf, const char character,
-                      const struct GSHL_TemplateOpts_character opts,
-                      const usize precomputed_count)
+usize write_character(char *buf, GSHL_Template *t_mut)
 {
-    if (buf == NULL || precomputed_count == 0) {
-        return 1;
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_CHAR);
+
+    if (buf == NULL) {
+        return t_mut->count = t->character != '\0';
     }
 
-    assert(precomputed_count == 1);
-    buf[0] = character;
+    GSHL_ASSERT((t->character == '\0' && t->count == 0) ||
+                (t->character != '\0' && t->count == 1));
+    buf[0] = t->character;
 
-    return precomputed_count;
+    return t->count;
 }
 
 #ifdef GSHL_TESTS
@@ -25,28 +30,31 @@ usize write_character(char *buf, const char character,
 
 GSHL_TEST(write_char)
 {
-#    define TEST_WRITE_CHAR(CHAR, EXPECTED_COUNT, EXPECTED_STRING, ...)        \
+#    define TEST_WRITE_CHAR(CHAR, EXPECTED_STRING, ...)                        \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const struct GSHL_TemplateOpts_character optsDef = {__VA_ARGS__};  \
-            const usize count = write_character(NULL, CHAR, optsDef, 0);       \
-            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_character(buffer, CHAR, optsDef, count),     \
-                            EXPECTED_COUNT);                                   \
+            struct GSHL_Template template = {                                  \
+                .kind = GSHL_TEMPLATE_CHAR,                                    \
+                .character = CHAR,                                             \
+                .opts.character = {__VA_ARGS__},                               \
+            };                                                                 \
+            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
+            GSHL_TEST_EQUAL(write_character(NULL, &template), count);          \
+            GSHL_TEST_EQUAL(write_character(buffer, &template), count);        \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }
 
-    TEST_WRITE_CHAR(0, 1, "");
-    TEST_WRITE_CHAR('0', 1, "0");
-    TEST_WRITE_CHAR('1', 1, "1");
-    TEST_WRITE_CHAR('2', 1, "2");
-    TEST_WRITE_CHAR('3', 1, "3");
-    TEST_WRITE_CHAR('4', 1, "4");
-    TEST_WRITE_CHAR('5', 1, "5");
-    TEST_WRITE_CHAR('6', 1, "6");
-    TEST_WRITE_CHAR('7', 1, "7");
-    TEST_WRITE_CHAR('8', 1, "8");
-    TEST_WRITE_CHAR('9', 1, "9");
+    TEST_WRITE_CHAR(0, "");
+    TEST_WRITE_CHAR('0', "0");
+    TEST_WRITE_CHAR('1', "1");
+    TEST_WRITE_CHAR('2', "2");
+    TEST_WRITE_CHAR('3', "3");
+    TEST_WRITE_CHAR('4', "4");
+    TEST_WRITE_CHAR('5', "5");
+    TEST_WRITE_CHAR('6', "6");
+    TEST_WRITE_CHAR('7', "7");
+    TEST_WRITE_CHAR('8', "8");
+    TEST_WRITE_CHAR('9', "9");
 
 #    undef TEST_WRITE_CHAR
 }

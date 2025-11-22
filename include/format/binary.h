@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_binary(char *buf, const u64 binary,
-                   const struct GSHL_TemplateOpts_binary opts,
-                   const usize precomputed_count);
+usize write_binary(char *buf, GSHL_Template *template);
 
 /// }}}
 

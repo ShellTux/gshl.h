@@ -1,44 +1,60 @@
 #include "format/isize.h"
 
+#include "macros/mod.h"
+#include "string/mod.h"
+
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
-usize write_isize(char *buf, const isize value,
-                  const struct GSHL_TemplateOpts_isize opts,
-                  const usize precomputed_count)
+usize write_isize(char *buf, GSHL_Template *t_mut)
 {
-    if (buf == NULL || precomputed_count == 0) {
-        usize isize_count = 0;
+    const GSHL_Template *const t = t_mut;
 
-        isize remaining = value;
+    GSHL_ASSERT(t->kind &
+                (GSHL_TEMPLATE_I8 | GSHL_TEMPLATE_I16 | GSHL_TEMPLATE_I32 |
+                 GSHL_TEMPLATE_I64 | GSHL_TEMPLATE_ISIZE));
+
+    isize remaining = t->i32 * !!(t->kind & GSHL_TEMPLATE_I8) +
+                      t->i32 * !!(t->kind & GSHL_TEMPLATE_I16) +
+                      t->i32 * !!(t->kind & GSHL_TEMPLATE_I32) +
+                      t->i64 * !!(t->kind & GSHL_TEMPLATE_I64) +
+                      t->isize * !!(t->kind & GSHL_TEMPLATE_ISIZE);
+
+    if (buf == NULL) {
+        if (remaining < 0) {
+            t_mut->count = GSHL_STACK_STRING_LEN("-");
+            remaining *= -1;
+        }
+        else {
+            t_mut->count = 0;
+        }
+
         do {
             remaining /= 10;
-            isize_count += 1;
+            t_mut->count += 1;
         } while (remaining != 0);
 
-        return (value >= 0 ? sizeof("") - 1 : sizeof("-") - 1) + isize_count;
+        return t->count;
     }
 
-    if (value < 0) {
-        buf[0] = '-';
-    }
-    else if (value == 0) {
+    if (remaining == 0) {
+        GSHL_ASSERT(t->count == 1);
         buf[0] = '0';
-        return precomputed_count;
+        return t->count;
     }
 
-    isize remaining = value;
     if (remaining < 0) {
         buf[0] = '-';
         remaining *= -1;
     }
 
-    for (isize i = precomputed_count - 1; i >= 0 && remaining > 0;
+    for (isize i = t->count - 1; i >= 0 && remaining > 0;
          --i, remaining /= 10) {
         buf[i] = '0' + (remaining % 10);
     }
 
-    return precomputed_count;
+    return t->count;
 }
 
 #ifdef GSHL_TESTS
@@ -47,24 +63,28 @@ usize write_isize(char *buf, const isize value,
 
 GSHL_TEST(write_isize)
 {
-#    define TEST_WRITE_isize(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)     \
+#    define TEST_WRITE_ISIZE(NUMBER, EXPECTED_STRING, ...)                     \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const struct GSHL_TemplateOpts_isize optsDef = {__VA_ARGS__};      \
-            const usize count = write_isize(NULL, NUMBER, optsDef, 0);         \
-            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_isize(buffer, NUMBER, optsDef, count),       \
-                            EXPECTED_COUNT);                                   \
+            struct GSHL_Template template = {                                  \
+                .kind = GSHL_TEMPLATE_ISIZE,                                   \
+                .isize = NUMBER,                                               \
+                .opts.isize = {__VA_ARGS__},                                   \
+            };                                                                 \
+            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
+            GSHL_TEST_EQUAL(write_isize(NULL, &template), count);              \
+            GSHL_TEST_EQUAL(write_isize(buffer, &template), count);            \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }
 
-    TEST_WRITE_isize(0, 1, "0");
-    TEST_WRITE_isize(3245, 4, "3245");
-    TEST_WRITE_isize(34948239, 8, "34948239");
-    TEST_WRITE_isize(-0, 1, "0");
-    TEST_WRITE_isize(-5, 2, "-5");
-    TEST_WRITE_isize(-534, 4, "-534");
-    TEST_WRITE_isize(-69, 3, "-69");
+    TEST_WRITE_ISIZE(0, "0");
+    TEST_WRITE_ISIZE(3245, "3245");
+    TEST_WRITE_ISIZE(34948239, "34948239");
+    TEST_WRITE_ISIZE(-0, "0");
+    TEST_WRITE_ISIZE(-2, "-2");
+    TEST_WRITE_ISIZE(-5, "-5");
+    TEST_WRITE_ISIZE(-534, "-534");
+    TEST_WRITE_ISIZE(-69, "-69");
     // TEST_WRITE_isize(ISIZE_MAX, 10, "2147483647");
 #    undef TEST_WRITE_isize
 }

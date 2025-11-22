@@ -1,18 +1,23 @@
 #include "format/cstring.h"
+#include "macros/mod.h"
+#include "string/mod.h"
 
+#include <assert.h>
 #include <string.h>
 
-usize write_cstring(char *buf, const char *cstring,
-                    const struct GSHL_TemplateOpts_cstring opts,
-                    const usize precomputed_count)
+usize write_cstring(char *buf, GSHL_Template *t_mut)
 {
-    if (buf == NULL || precomputed_count == 0) {
-        return strlen(cstring);
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_CSTRING);
+
+    if (buf == NULL) {
+        return t_mut->count = strlen(t->cstring);
     }
 
-    memcpy(buf, cstring, precomputed_count);
+    memcpy(buf, t->cstring, t->count);
 
-    return precomputed_count;
+    return t->count;
 }
 
 #ifdef GSHL_TESTS
@@ -20,20 +25,23 @@ usize write_cstring(char *buf, const char *cstring,
 
 GSHL_TEST(write_cstring)
 {
-#    define TEST_WRITE_CSTRING(CSTRING, EXPECTED_COUNT, EXPECTED_STRING, ...)  \
+#    define TEST_WRITE_CSTRING(CSTRING, EXPECTED_STRING, ...)                  \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const struct GSHL_TemplateOpts_cstring optsDef = {__VA_ARGS__};    \
-            const usize count = write_cstring(NULL, CSTRING, optsDef, 0);      \
-            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_cstring(buffer, CSTRING, optsDef, count),    \
-                            EXPECTED_COUNT);                                   \
+            struct GSHL_Template template = {                                  \
+                .kind = GSHL_TEMPLATE_CSTRING,                                 \
+                .cstring = CSTRING,                                            \
+                .opts.cstring = {__VA_ARGS__},                                 \
+            };                                                                 \
+            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
+            GSHL_TEST_EQUAL(write_cstring(NULL, &template), count);            \
+            GSHL_TEST_EQUAL(write_cstring(buffer, &template), count);          \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }
 
-    TEST_WRITE_CSTRING("", 0, "");
-    TEST_WRITE_CSTRING("abc", 3, "abc");
-    TEST_WRITE_CSTRING("   4l45krjslkac  \n", 18, "   4l45krjslkac  \n");
+    TEST_WRITE_CSTRING("", "");
+    TEST_WRITE_CSTRING("abc", "abc");
+    TEST_WRITE_CSTRING("   4l45krjslkac  \n", "   4l45krjslkac  \n");
 
 #    undef TEST_WRITE_CSTRING
 }

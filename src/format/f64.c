@@ -3,15 +3,17 @@
 #include "macros/mod.h"
 #include "types/mod.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
-usize write_f64(char *buf, const f64 value,
-                const struct GSHL_TemplateOpts_f64 opts,
-                const usize precomputed_count)
+usize write_f64(char *buf, GSHL_Template *t_mut)
 {
     GSHL_UNUSED(buf);
-    GSHL_UNUSED(value);
-    GSHL_UNUSED(precomputed_count);
+    GSHL_UNUSED(t_mut);
+
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_BINARY);
 
     GSHL_TODO("%s Not implemented yet", __FUNCTION__);
 

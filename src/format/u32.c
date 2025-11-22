@@ -1,13 +1,16 @@
 #include "format/u32.h"
 #include "format/usize.h"
 
+#include "macros/mod.h"
 #include "types/mod.h"
 
-usize write_u32(char *buf, const u32 u32,
-                const struct GSHL_TemplateOpts_u32 opts,
-                const usize precomputed_count)
-{
-    const struct GSHL_TemplateOpts_usize new_opts = {};
+#include <assert.h>
 
-    return write_usize(buf, u32, new_opts, precomputed_count);
+usize write_u32(char *buf, GSHL_Template *t_mut)
+{
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_U32);
+
+    return write_usize(buf, t_mut);
 }

@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_cstring(char *buf, const char *cstring,
-                    const struct GSHL_TemplateOpts_cstring opts,
-                    const usize precomputed_count);
+usize write_cstring(char *buf, GSHL_Template *template);
 
 /// }}}
 

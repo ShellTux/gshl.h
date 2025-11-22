@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_boolean(char *buf, const bool boolean,
-                    const struct GSHL_TemplateOpts_boolean opts,
-                    const usize precomputed_count);
+usize write_boolean(char *buf, GSHL_Template *template);
 
 /// }}}
 

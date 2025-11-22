@@ -115,29 +115,43 @@ void GSHL_free_FormatWrapperResult(struct GSHL_FormatWrapperResult *result)
     *result = (struct GSHL_FormatWrapperResult){0};
 }
 
-GSHL_FormatWrapperResult GSHL_format_wrapper(const char *restrict format, ...)
+GSHL_FormatWrapperResult
+GSHL_format_wrapper(const char *restrict format,
+                    const GSHL_FormatWrapperOpts formatOpts, ...)
 {
     va_list args;
-    va_start(args, format);
+    va_start(args, formatOpts);
 
-    const GSHL_FormatWrapperResult result = GSHL_format_wrapperv(format, args);
+    const GSHL_FormatWrapperResult result =
+        GSHL_format_wrapperv(format, formatOpts, args);
 
     va_end(args);
 
     return result;
 }
 
-GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
-                                              va_list args)
+void *GSHL_format_memwrite(void **bufP, const void *src, const usize len)
+{
+    void *dest = *bufP;
+
+    memcpy(bufP, src, len);
+    bufP += len;
+
+    return dest;
+}
+
+usize GSHL_format_wrapper_result_countv(const char *restrict format,
+                                        const GSHL_FormatWrapperOpts opts,
+                                        va_list args)
+{
+    return 0;
+}
+
+GSHL_FormatWrapperResult
+GSHL_format_wrapperv(const char *restrict format,
+                     const GSHL_FormatWrapperOpts formatOpts, va_list args)
 {
     GSHL_FormatWrapperResult result = {0};
-
-    if (format[0] == '\0') {
-        result.string = calloc(1, *format);
-        assert(result.string != NULL);
-        return result;
-    }
-
     char *formatEnd = NULL;
 
     /*
@@ -254,7 +268,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
         t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
+        t->write.NAME(NULL, t);                                                \
     } break;
 #define TV(SPECIFIER, ENUM, NAME, TYPE, VALUE, OPTS)                           \
     case SPECIFIER: {                                                          \
@@ -262,7 +276,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
         t->NAME = VALUE;                                                       \
         t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
+        t->write.NAME(NULL, t);                                                \
     } break;
 #define TL(...)
                     GSHL_FILL_TEMPLATE
@@ -282,7 +296,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
         t->opts.NAME = (struct GSHL_TemplateOpts_##NAME)OPTS;                  \
         t->write.NAME = write_##NAME;                                          \
-        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
+        t->write.NAME(NULL, t);                                                \
     } break;
                         GSHL_FILL_TEMPLATE
 #undef T
@@ -310,9 +324,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 t->kind = GSHL_TEMPLATE_CHAR;
                 t->character = formatC[1];
                 t->write.character = write_character;
-                t->count = t->write.character(
-                    NULL, t->character, (struct GSHL_TemplateOpts_character){},
-                    0);
+                t->write.character(NULL, t);
 
                 result.count += t->count;
 
@@ -328,7 +340,7 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
     case GSHL_TEMPLATE_##ENUM:                                                 \
         t->write.NAME = write_##NAME;                                          \
         t->NAME = va_arg(args, VA_ARG_TYPE);                                   \
-        t->count = t->write.NAME(NULL, t->NAME, t->opts.NAME, 0);              \
+        t->write.NAME(NULL, t);                                                \
         break;
                     GSHL_TEMPLATE_KINDS
 #undef KIND
@@ -372,6 +384,13 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
     }
 #endif
 
+    const usize prefixLen =
+        (formatOpts.prefix != NULL) ? strlen(formatOpts.prefix) : 0;
+    const usize suffixLen =
+        (formatOpts.suffix != NULL) ? strlen(formatOpts.suffix) : 0;
+
+    result.count += prefixLen + suffixLen;
+
 #if GSHL_FORMAT_DEBUG > 0
     GSHL_FORMAT_DEBUG_PRINT("result.count = %lu\n", result.count);
     result.string = malloc((result.count + 1) * sizeof(*result.string));
@@ -385,15 +404,19 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
     {
         char *formatStart = (char *)format;
         char *output = result.string;
-        GSHL_FORMAT_DEBUG_PRINT(" result.string = \"%s\"\n", result.string);
-        GSHL_ARRAYN_FOREACH(result.templates.items, result.templates.count,
-                            GSHL_Template template)
-        {
-            GSHL_ASSERT(formatStart <= template.formatStart);
-            GSHL_ASSERT(formatStart <= template.formatEnd &&
-                        template.formatEnd <= formatEnd);
 
-            const usize len = template.formatStart - formatStart;
+        memcpy(output, formatOpts.prefix, prefixLen);
+        output += prefixLen;
+
+        GSHL_FORMAT_DEBUG_PRINT(" result.string = \"%s\"\n", result.string);
+        GSHL_ARRAYN_FOREACH_MUT(result.templates.items, result.templates.count,
+                                const GSHL_Template *const template)
+        {
+            GSHL_ASSERT(formatStart <= template->formatStart);
+            GSHL_ASSERT(formatStart <= template->formatEnd &&
+                        template->formatEnd <= formatEnd);
+
+            const usize len = template->formatStart - formatStart;
             memcpy(output, formatStart, len);
             output += len;
 
@@ -419,11 +442,10 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                         template.kind);
             }
 #endif
-            switch (template.kind) {
+            switch (template->kind) {
 #define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
     case GSHL_TEMPLATE_##ENUM:                                                 \
-        output += template.write.NAME(output, template.NAME,                   \
-                                      template.opts.NAME, template.count);     \
+        output += template->write.NAME(output, (GSHL_Template *)template);     \
         GSHL_FORMAT_DEBUG_PRINT(" result.string = \"%s\"\n", result.string);   \
         break;
                 GSHL_TEMPLATE_KINDS
@@ -432,15 +454,19 @@ GSHL_FormatWrapperResult GSHL_format_wrapperv(const char *restrict format,
                 GSHL_UNREACHABLE(
                     "Template write not implemented yet '%.*s', format: "
                     "\"%s\"",
-                    (int)(template.formatEnd - template.formatStart),
-                    template.formatStart, format);
+                    (int)(template->formatEnd - template->formatStart),
+                    template->formatStart, format);
                 break;
             }
 
-            formatStart = template.formatEnd;
+            formatStart = template->formatEnd;
         }
 
         memcpy(output, formatStart, formatEnd - formatStart);
+        output += formatEnd - formatStart;
+
+        memcpy(output, formatOpts.suffix, suffixLen);
+        output += suffixLen;
     }
 
     return result;
@@ -467,8 +493,11 @@ GSHL_TEST(format_wrapper)
             GSHL_free_FormatWrapperResult(&result);                            \
         }
 
-    TEST_FORMAT_WRAPPER_RESULT("", 0, {}, "");
-    TEST_FORMAT_WRAPPER_RESULT("Hello world!\n", 13, {}, "Hello world!\n");
+    const GSHL_FormatWrapperOpts opts = {};
+
+    TEST_FORMAT_WRAPPER_RESULT("", 0, {}, "", opts);
+    TEST_FORMAT_WRAPPER_RESULT("Hello world!\n", 13, {}, "Hello world!\n",
+                               opts);
     TEST_FORMAT_WRAPPER_RESULT(
         "3245", 4,
         {
@@ -477,7 +506,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].i32, 3245);
             GSHL_TEST_EQUAL(templates[0].count, 4);
         },
-        "%i", 3245);
+        "%i", opts, 3245);
     TEST_FORMAT_WRAPPER_RESULT(
         "1 -2 3", 6,
         {
@@ -492,7 +521,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[2].i32, 3);
             GSHL_TEST_EQUAL(templates[2].count, 1);
         },
-        "%i %i %i", 1, -2, 3);
+        "%i %i %i", opts, 1, -2, 3);
 
     TEST_FORMAT_WRAPPER_RESULT(
         "    -485   ", 11,
@@ -502,7 +531,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].i32, -485);
             GSHL_TEST_EQUAL(templates[0].count, 4);
         },
-        "    %i   ", -485);
+        "    %i   ", opts, -485);
 
     TEST_FORMAT_WRAPPER_RESULT(
         "Hello world!", 12,
@@ -512,7 +541,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_STR_EQUAL(templates[0].cstring, "Hello world!");
             GSHL_TEST_EQUAL(templates[0].count, 12);
         },
-        "%s", "Hello world!");
+        "%s", opts, "Hello world!");
 
     TEST_FORMAT_WRAPPER_RESULT(
         "  Foo  bar  baz ", 16,
@@ -528,7 +557,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_STR_EQUAL(templates[2].cstring, "baz");
             GSHL_TEST_EQUAL(templates[2].count, 3);
         },
-        "  %s  %s  %s ", "Foo", "bar", "baz");
+        "  %s  %s  %s ", opts, "Foo", "bar", "baz");
 
     TEST_FORMAT_WRAPPER_RESULT(
         "count = 5", 9,
@@ -541,7 +570,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[1].i32, 5);
             GSHL_TEST_EQUAL(templates[1].count, 1);
         },
-        "%s = %i", "count", 5);
+        "%s = %i", opts, "count", 5);
 
     TEST_FORMAT_WRAPPER_RESULT(
         "i32: 42", 7,
@@ -551,7 +580,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].i32, 42);
             GSHL_TEST_EQUAL(templates[0].count, 2);
         },
-        "i32: %i", 42)
+        "i32: %i", opts, 42)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "u32: 42", 7,
@@ -561,7 +590,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].u32, 42);
             GSHL_TEST_EQUAL(templates[0].count, 2);
         },
-        "u32: %u", 42)
+        "u32: %u", opts, 42)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "char: F", 7,
@@ -571,7 +600,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].character, 'F');
             GSHL_TEST_EQUAL(templates[0].count, 1);
         },
-        "char: %c", 'F')
+        "char: %c", opts, 'F')
 
     TEST_FORMAT_WRAPPER_RESULT(
         "void*: nil", 10,
@@ -581,7 +610,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].pointer, NULL);
             GSHL_TEST_EQUAL(templates[0].count, 3);
         },
-        "void*: %p", NULL)
+        "void*: %p", opts, NULL)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "void*: 0x7ffc0d1b64f4", 21,
@@ -591,7 +620,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].pointer, (void *)0x7ffc0d1b64f4);
             GSHL_TEST_EQUAL(templates[0].count, 14);
         },
-        "void*: %p", (void *)0x7ffc0d1b64f4)
+        "void*: %p", opts, (void *)0x7ffc0d1b64f4)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "%", 1,
@@ -601,7 +630,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].character, '%');
             GSHL_TEST_EQUAL(templates[0].count, 1);
         },
-        "%%")
+        "%%", opts)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "69", 2,
@@ -611,7 +640,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[0].hex, 0x69);
             GSHL_TEST_EQUAL(templates[0].count, 2);
         },
-        "%x", 105UL)
+        "%x", opts, 105UL)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "69 24", 5,
@@ -624,7 +653,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[1].i32, 24);
             GSHL_TEST_EQUAL(templates[1].count, 2);
         },
-        "%x %i", 105, 24)
+        "%x %i", opts, 105, 24)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "{  }", 4,
@@ -637,7 +666,7 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[1].character, '}');
             GSHL_TEST_EQUAL(templates[1].count, 1);
         },
-        "{{  }}")
+        "{{  }}", opts)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "127 32767 -38453 235638 2349", 28,
@@ -659,7 +688,8 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[4].isize, 2349);
             GSHL_TEST_EQUAL(templates[4].count, 4);
         },
-        "{i8} {i16} {i32} {i64} {isize}", 127, 32767, -38453, 235638, 2349)
+        "{i8} {i16} {i32} {i64} {isize}", opts, 127, 32767, -38453, 235638,
+        2349)
 
     TEST_FORMAT_WRAPPER_RESULT(
         "255, 3422, 12893, 393294, 34455677", 34,
@@ -681,11 +711,8 @@ GSHL_TEST(format_wrapper)
             GSHL_TEST_EQUAL(templates[4].usize, 34455677);
             GSHL_TEST_EQUAL(templates[4].count, 8);
         },
-        "{u8}, {u16}, {u32}, {u64}, {usize}", 0xFF, 3422, 12893, 393294,
+        "{u8}, {u16}, {u32}, {u64}, {usize}", opts, 0xFF, 3422, 12893, 393294,
         34455677);
-
-    // TEST_FORMAT_WRAPPER_RESULT("255, 3422, 12893, 393294, 34455677", 34, {},
-    //                            " %i ", 0xFF, 3422, 12893, 393294, 34455677);
 
     // TEST_FORMAT_WRAPPER_RESULT(
     //     "3.14 3.14 3.14 3.14", 19,
@@ -779,13 +806,14 @@ GSHL_TEST(format_wrapper)
 #        undef X2
             ;
 
-        GSHL_FormatWrapperResult result = GSHL_format_wrapper(format
+        GSHL_FormatWrapperResult result =
+            GSHL_format_wrapper(format, opts
 #        define X0(...)
 #        define X1(FORMAT, EXPECTED_FORMAT, VALUE, EXPECTED_COUNT) , VALUE
-                                                                  ALL_FORMAT
+                                            ALL_FORMAT
 #        undef X0
 #        undef X1
-        );
+            );
 
         GSHL_TEST_STR_EQUAL(result.string, expected, .align_on_new_line = true);
         printf("result.count (%lu) == count (%lu)\n", result.count, count);

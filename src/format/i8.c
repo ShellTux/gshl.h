@@ -1,12 +1,16 @@
 #include "format/i8.h"
 #include "format/isize.h"
 
+#include "macros/mod.h"
 #include "types/mod.h"
 
-usize write_i8(char *buf, const i8 i8, const struct GSHL_TemplateOpts_i8 opts,
-               const usize precomputed_count)
-{
-    const struct GSHL_TemplateOpts_isize new_opts = {};
+#include <assert.h>
 
-    return write_isize(buf, i8, new_opts, precomputed_count);
+usize write_i8(char *buf, GSHL_Template *t_mut)
+{
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_I8);
+
+    return write_isize(buf, t_mut);
 }

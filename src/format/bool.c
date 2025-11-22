@@ -1,34 +1,37 @@
 #include "format/bool.h"
 
 #include "macros/mod.h"
+#include "string/mod.h"
 #include "types/mod.h"
 
 #include <assert.h>
 #include <string.h>
 
-usize write_boolean(char *buf, const bool boolean,
-                    const struct GSHL_TemplateOpts_boolean opts,
-                    const usize precomputed_count)
+usize write_boolean(char *buf, GSHL_Template *t_mut)
 {
+    const GSHL_Template *const t = t_mut;
+
+    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_BOOL);
+
     static const char *strings[] = {
         [false] = "false",
         [true] = "true",
     };
 
     static const usize lens[] = {
-        [false] = sizeof("false") - 1,
-        [true] = sizeof("true") - 1,
+        [false] = GSHL_STACK_STRING_LEN("false"),
+        [true] = GSHL_STACK_STRING_LEN("true"),
     };
 
-    if (buf == NULL || precomputed_count == 0) {
-        return lens[boolean];
+    if (buf == NULL) {
+        return t_mut->count = lens[t->boolean];
     }
 
-    GSHL_ASSERT(precomputed_count == lens[boolean]);
+    GSHL_ASSERT(t->count == lens[t->boolean]);
 
-    memcpy(buf, strings[boolean], precomputed_count);
+    memcpy(buf, strings[t->boolean], t->count);
 
-    return precomputed_count;
+    return t->count;
 }
 
 #ifdef GSHL_TESTS
@@ -36,23 +39,26 @@ usize write_boolean(char *buf, const bool boolean,
 
 GSHL_TEST(write_boolean)
 {
-#    define TEST_WRITE_BOOLEAN(NUMBER, EXPECTED_COUNT, EXPECTED_STRING, ...)   \
+#    define TEST_WRITE_BOOLEAN(NUMBER, EXPECTED_STRING, ...)                   \
         {                                                                      \
             char buffer[256] = {0};                                            \
-            const struct GSHL_TemplateOpts_boolean optsDef = {__VA_ARGS__};    \
-            const usize count = write_boolean(NULL, NUMBER, optsDef, 0);       \
-            GSHL_TEST_EQUAL(count, EXPECTED_COUNT);                            \
-            GSHL_TEST_EQUAL(write_boolean(buffer, NUMBER, optsDef, count),     \
-                            EXPECTED_COUNT);                                   \
+            struct GSHL_Template template = {                                  \
+                .kind = GSHL_TEMPLATE_BOOL,                                    \
+                .boolean = NUMBER,                                             \
+                .opts.boolean = {__VA_ARGS__},                                 \
+            };                                                                 \
+            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
+            GSHL_TEST_EQUAL(write_boolean(NULL, &template), count);            \
+            GSHL_TEST_EQUAL(write_boolean(buffer, &template), count);          \
             GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
         }
 
-    TEST_WRITE_BOOLEAN(0, 5, "false");
-    TEST_WRITE_BOOLEAN(1, 4, "true");
-    TEST_WRITE_BOOLEAN(0b10101, 4, "true");
-    TEST_WRITE_BOOLEAN(~0L, 4, "true");
-    TEST_WRITE_BOOLEAN(true, 4, "true");
-    TEST_WRITE_BOOLEAN(false, 5, "false");
+    TEST_WRITE_BOOLEAN(0, "false");
+    TEST_WRITE_BOOLEAN(1, "true");
+    TEST_WRITE_BOOLEAN(0b10101, "true");
+    TEST_WRITE_BOOLEAN(~0L, "true");
+    TEST_WRITE_BOOLEAN(true, "true");
+    TEST_WRITE_BOOLEAN(false, "false");
 
 #    undef TEST_WRITE_BOOLEAN
 }

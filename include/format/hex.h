@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_hex(char *buf, const usize hex,
-                const struct GSHL_TemplateOpts_hex opts,
-                const usize precomputed_count);
+usize write_hex(char *buf, GSHL_Template *template);
 
 /// }}}
 

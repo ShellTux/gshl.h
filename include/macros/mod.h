@@ -18,7 +18,7 @@
 #define GSHL_TODO(...) GSHL_EXIT("TODO: " __VA_ARGS__)
 #define GSHL_UNREACHABLE(...) GSHL_EXIT("UNREACHABLE: " __VA_ARGS__)
 #define GSHL_LOOP for (;;)
-#ifdef DEBUG
+#ifdef GSHL_DEBUG
 #    define GSHL_ASSERT(...) assert(__VA_ARGS__)
 #else
 #    define GSHL_ASSERT(...)

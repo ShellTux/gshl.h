@@ -6,9 +6,7 @@
 
 /// {{{ Functions
 
-usize write_pointer(char *buf, const void *pointer,
-                    const struct GSHL_TemplateOpts_pointer opts,
-                    const usize precomputed_count);
+usize write_pointer(char *buf, GSHL_Template *template);
 
 /// }}}
 
