@@ -3,6 +3,7 @@ TARGETS = \
 					$(TARGET_DIR)/libgshl.a \
 					$(TARGET_DIR)/gshl-test \
 					$(TARGET_DIR)/examples/macros \
+					$(TARGET_DIR)/examples/print \
 
 DEPS :=
 $(TARGET_DIR)/libgshl.so: $(DEPS:%.c=$(BUILD_DIR)/%.o)
@@ -21,5 +22,10 @@ $(TARGET_DIR)/gshl-test: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 
 DEPS := examples/macros.c
 $(TARGET_DIR)/examples/macros: $(DEPS:%.c=$(BUILD_DIR)/%.o)
+	@mkdir --parents $(shell dirname $@)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+DEPS := examples/print.c
+$(TARGET_DIR)/examples/print: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 	@mkdir --parents $(shell dirname $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
