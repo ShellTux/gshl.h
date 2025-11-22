@@ -1,7 +1,7 @@
-CFLAGS += -DDEBUG
+CFLAGS += -DGSHL_DEBUG
 CFLAGS += -ggdb
 
-CXXFLAGS += -DDEBUG
+CXXFLAGS += -DGSHL_DEBUG
 CXXFLAGS += -ggdb
 
 LDFLAGS += -fsanitize=address

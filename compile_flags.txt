@@ -6,4 +6,5 @@
 -Wno-error=unused-but-set-variable
 -Iinclude
 -std=c99
+-DGSHL_DEBUG
 -DGSHL_TESTS
