@@ -93,6 +93,7 @@
                   pkgs.entr
                   pkgs.fd
                   pkgs.jq
+                  pkgs.onefetch
                   pkgs.ripgrep
                   pkgs.ripgrep-all
                   pkgs.tokei
