@@ -9,7 +9,6 @@
 usize write_f64(char *buf, GSHL_Template *t_mut)
 {
     GSHL_UNUSED(buf);
-    GSHL_UNUSED(t_mut);
 
     const GSHL_Template *const t = t_mut;
 

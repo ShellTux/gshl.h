@@ -1,6 +1,6 @@
-#ifndef INCLUDE_INCLUDE_ANSI_H_
-#define INCLUDE_INCLUDE_ANSI_H_
+#ifndef INCLUDE_ANSI_MOD_H_
+#define INCLUDE_ANSI_MOD_H_
 
 #include "ansi/colors.h" // IWYU pragma: export
 
-#endif // INCLUDE_INCLUDE_ANSI_H_
+#endif // INCLUDE_ANSI_MOD_H_

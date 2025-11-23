@@ -1,4 +1,5 @@
 // vim: foldmethod=marker
+// gshl-priority: 81
 #ifndef INCLUDE_FORMAT_WRAPPER_H_
 #define INCLUDE_FORMAT_WRAPPER_H_
 
@@ -135,6 +136,7 @@ void *GSHL_format_memwrite(void **bufP, const void *src, const usize len);
 void GSHL_format_register_debug(const char *restrict template,
                                 usize (*write)(char *buf, const void *,
                                                const usize));
+usize GSHL_format_count_templates(char **formatP);
 
 /// }}}
 

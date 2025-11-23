@@ -1,5 +1,5 @@
-#ifndef INCLUDE_INCLUDE_ARRAY_H_
-#define INCLUDE_INCLUDE_ARRAY_H_
+#ifndef INCLUDE_ARRAY_MOD_H_
+#define INCLUDE_ARRAY_MOD_H_
 
 #include "types/mod.h"
 
@@ -75,4 +75,4 @@ typedef struct GSHL_ArrayForEachOpts {
 
 /// }}}
 
-#endif // INCLUDE_INCLUDE_ARRAY_H_
+#endif // INCLUDE_ARRAY_MOD_H_

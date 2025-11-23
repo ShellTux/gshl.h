@@ -144,22 +144,22 @@ usize GSHL_format_wrapper_result_countv(const char *restrict format,
                                         const GSHL_FormatWrapperOpts opts,
                                         va_list args)
 {
+    GSHL_UNUSED(format);
+    GSHL_UNUSED(opts);
+    GSHL_UNUSED(args);
+
     return 0;
 }
 
-GSHL_FormatWrapperResult
-GSHL_format_wrapperv(const char *restrict format,
-                     const GSHL_FormatWrapperOpts formatOpts, va_list args)
+usize GSHL_format_count_templates(char **formatP)
 {
-    GSHL_FormatWrapperResult result = {0};
-    char *formatEnd = NULL;
+    GSHL_ASSERT(formatP != NULL);
 
-    /*
-     * Count how many template specifiers
-     * Count how many non-template bytes into result.count
-     */
+    usize template_count = 0;
+    char *formatEnd = NULL;
     isize parenBalance = 0;
-    for (formatEnd = (char *)format; *formatEnd != '\0'; formatEnd += 1) {
+
+    for (formatEnd = *formatP; *formatEnd != '\0'; formatEnd += 1) {
         const char *formatC = formatEnd;
         /*
          * Backward compatible format specifiers
@@ -171,7 +171,7 @@ GSHL_format_wrapperv(const char *restrict format,
 #define TL(...)
             case 'o':
                 GSHL_FILL_TEMPLATE
-                result.templates.count += 1;
+                template_count += 1;
                 formatEnd = (char *)formatC + 1;
                 break;
 #undef T
@@ -183,7 +183,7 @@ GSHL_format_wrapperv(const char *restrict format,
 #define TV(...)
 #define TL(SPECIFIER, ENUM, NAME, TYPE, VA_ARG_TYPE, OPTS) case SPECIFIER:
                     GSHL_FILL_TEMPLATE
-                    result.templates.count += 1;
+                    template_count += 1;
                     formatEnd = (char *)formatC + 1;
                     break;
 #undef T
@@ -192,20 +192,20 @@ GSHL_format_wrapperv(const char *restrict format,
                 default:
                     GSHL_UNREACHABLE(
                         "Unknown template specifier \"%.*s\", format: \"%s\"",
-                        3, formatC, format);
+                        3, formatC, *formatP);
                 }
                 break;
             default:
                 GSHL_UNREACHABLE(
                     "Unknown template specifier \"%.*s\", format: \"%s\"", 2,
-                    formatC, format);
+                    formatC, *formatP);
             }
         }
         else if ((formatC[0] == '}' && formatC[1] == '}') ||
                  (formatC[0] == '{' && formatC[1] == '{')) {
 
             formatEnd = (char *)formatC + 1;
-            result.templates.count += 1;
+            template_count += 1;
         }
         else if (formatC[0] == '{') {
 
@@ -220,20 +220,33 @@ GSHL_format_wrapperv(const char *restrict format,
             parenBalance -= 1;
 
             formatEnd = (char *)formatC + 1;
-            result.templates.count += 1;
-        }
-        else {
-            result.count += 1;
+            template_count += 1;
         }
     }
+
+    GSHL_ASSERT(parenBalance == 0);
+    *formatP = formatEnd;
+
+    return template_count;
+}
+
+GSHL_FormatWrapperResult
+GSHL_format_wrapperv(const char *restrict format,
+                     const GSHL_FormatWrapperOpts formatOpts, va_list args)
+{
+    GSHL_FormatWrapperResult result = {0};
+
+    char *formatEnd = (char *)format;
+    result.templates.count = GSHL_format_count_templates(&formatEnd);
 
     GSHL_FORMAT_DEBUG_PRINT("formatEnd = (%p)\n", formatEnd);
     GSHL_FORMAT_DEBUG_PRINT("formatEnd - formatStart = %li\n",
                             formatEnd - format);
     GSHL_FORMAT_DEBUG_PRINT("len(format) = %lu\n", strlen(format));
 
-    assert(formatEnd - format == (isize)strlen(format));
-    assert(parenBalance == 0);
+    GSHL_ASSERT(formatEnd - format == (isize)strlen(format));
+
+    // result.count = GSHL_format_wrapper_result_countv(format, opts, args);
 
     /*
      * Fill templates
@@ -358,6 +371,9 @@ GSHL_format_wrapperv(const char *restrict format,
                 result.count += t->count;
                 formatC = t->formatEnd - 1;
                 template_index += 1;
+            }
+            else {
+                result.count += 1;
             }
         }
     }
@@ -816,7 +832,6 @@ GSHL_TEST(format_wrapper)
             );
 
         GSHL_TEST_STR_EQUAL(result.string, expected, .align_on_new_line = true);
-        printf("result.count (%lu) == count (%lu)\n", result.count, count);
         GSHL_TEST_EQUAL(result.count, count);
 
         usize template_index = 0;

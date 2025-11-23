@@ -1,6 +1,6 @@
 // vim: foldmethod=marker
-#ifndef INCLUDE_INCLUDE_TEST_H_
-#define INCLUDE_INCLUDE_TEST_H_
+#ifndef INCLUDE_TEST_MOD_H_
+#define INCLUDE_TEST_MOD_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -94,7 +94,7 @@ typedef struct GSHL_Test {
     struct GSHL_Test *prev;
 } GSHL_Test;
 
-typedef struct {
+typedef struct GSHL_TestEqualOpt {
     bool continue_on_fail;
     bool align_on_new_line;
 } GSHL_TestEqualOpt;
@@ -109,14 +109,10 @@ GSHLDEF usize GSHL_run_tests(const char *filter);
 
 /// }}}
 
-/// {{{ Stripping
-
 #ifdef GSHL_STRIP_PREFIX
 #    define TEST_EQUAL GSHL_TEST_EQUAL
 #    define REGISTER_TEST GSHL_REGISTER_TEST
 #    define run_tests GSHL_run_tests
 #endif
 
-/// }}}
-
-#endif // INCLUDE_INCLUDE_TEST_H_
+#endif // INCLUDE_TEST_MOD_H_

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_INCLUDE_MATH_H_
-#define INCLUDE_INCLUDE_MATH_H_
+#ifndef INCLUDE_MATH_MOD_H_
+#define INCLUDE_MATH_MOD_H_
 
 #include "types/mod.h"
 
@@ -13,4 +13,4 @@ usize GSHL_factorial(const usize number);
 #    define factorial GSHL_factorial
 #endif
 
-#endif // INCLUDE_INCLUDE_MATH_H_
+#endif // INCLUDE_MATH_MOD_H_

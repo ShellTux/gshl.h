@@ -1,5 +1,6 @@
-#ifndef INCLUDE_INCLUDE_MACROS_H_
-#define INCLUDE_INCLUDE_MACROS_H_
+// gshl-priority: 99
+#ifndef INCLUDE_MACROS_MOD_H_
+#define INCLUDE_MACROS_MOD_H_
 
 #include <stdio.h> // IWYU pragma: keep
 
@@ -21,7 +22,7 @@
 #ifdef GSHL_DEBUG
 #    define GSHL_ASSERT(...) assert(__VA_ARGS__)
 #else
-#    define GSHL_ASSERT(...)
+#    define GSHL_ASSERT(...) GSHL_UNUSED((__VA_ARGS__))
 #endif
 
 #ifdef GSHL_STRIP_PREFIX
@@ -33,4 +34,4 @@
 #    define UNUSED GSHL_UNUSED
 #endif
 
-#endif // INCLUDE_INCLUDE_MACROS_H_
+#endif // INCLUDE_MACROS_MOD_H_
