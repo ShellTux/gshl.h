@@ -47,6 +47,29 @@
         }                                                                      \
     } while (0)
 
+#define GSHL_TEST_NEQUAL(EXPR1, EXPR2, ...)                                    \
+    do {                                                                       \
+        GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
+                                                                               \
+        if ((EXPR1) == (EXPR2)) {                                              \
+            *failed_tests += 1;                                                \
+            fprintf(stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
+                        " FAILED ") " Assertion failed : %s != %s\n",          \
+                    __FILE__, __LINE__, __func__, #EXPR1, #EXPR2);             \
+                                                                               \
+            if (opt.continue_on_fail) {                                        \
+                return;                                                        \
+            }                                                                  \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_GREEN( \
+                        " PASSED ") "\n",                                      \
+                    __FILE__, __LINE__, __func__);                             \
+        }                                                                      \
+    } while (0)
+
 #define GSHL_TEST_STR_EQUAL(STR1, STR2, ...)                                   \
     do {                                                                       \
         GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
