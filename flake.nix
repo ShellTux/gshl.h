@@ -91,7 +91,10 @@
                 ++ (if system == "aarch64-darwin" then [ ] else [ pkgs.gdb ])
                 ++ [
                   pkgs.entr
+                  pkgs.cargo-flamegraph
                   pkgs.fd
+                  pkgs.gprof2dot
+                  pkgs.graphviz
                   pkgs.jq
                   pkgs.onefetch
                   pkgs.ripgrep
