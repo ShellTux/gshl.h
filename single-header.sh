@@ -74,10 +74,10 @@ done | sort --reverse | while read -r priority header
 do
   printf ' %i %s\r' "$priority" "$header"
   cat "$header" \
-    | grep --invert-match '^#\s*include "' \
-    | grep --invert-match '^#ifndef INCLUDE_' \
-    | grep --invert-match '^#define INCLUDE_' \
-    | grep --invert-match '^#endif // INCLUDE_' \
+    | awk '/^\s*#\s*include\s*"/ { print "// " $0; next } { print }' \
+    | awk '/^\s*#\s*ifndef INCLUDE_/ { print "// " $0; next } { print }' \
+    | awk '/^\s*#\s*define INCLUDE_/ { print "// " $0; next } { print }' \
+    | awk '/^\s*#\s*endif \/\/ INCLUDE_/ { print "// " $0; next } { print }' \
     | tee --append "$single_header" >/dev/null
   printf '\033[32m%s\033[0m %i %s\n' ✓ "$priority" "$header"
 done
@@ -91,23 +91,13 @@ done | sort --reverse | while read -r priority src
 do
   printf ' %i %s\r' "$priority" "$src"
 
-  lines="$(awk 'END {print NR}' "$src")"
-  [ "$lines" -le 0 ] && continue
-
-  first_empty_line_number="$(awk '/^$/ {print NR ; exit}' "$src")"
-  if ! { [ 1 -le "$first_empty_line_number" ] && [ "$first_empty_line_number" -le "$lines" ]; }
-  then
-    printf 'Invalid first empty line number for %s:%d\n' "$src" "$first_empty_line_number"
-    exit 1
-  fi
-
   {
     printf '#ifdef GSHL_SOURCE_CODE_MAPPING\n'
-    printf '#line %d "%s"\n' "$first_empty_line_number" "$src"
+    printf '#line 0 "%s"\n' "$src"
     printf '#endif // GSHL_SOURCE_CODE_MAPPING\n'
   } | clang-format | tee --append "$single_header" >/dev/null
   cat "$src" \
-    | grep --invert-match '^#\s*include "' \
+    | awk '/^\s*#\s*include\s*"/ { print "// " $0; next } { print }' \
     | tee --append "$single_header" >/dev/null
 
   printf '\033[32m%s\033[0m %i %s\n' ✓ "$priority" "$src"

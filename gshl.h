@@ -1,6 +1,8 @@
 #ifndef INCLUDE_GSHL_H_
 #define INCLUDE_GSHL_H_
 // gshl-priority: 99
+// #ifndef INCLUDE_MACROS_MOD_H_
+// #define INCLUDE_MACROS_MOD_H_
 
 #include <stdio.h> // IWYU pragma: keep
 
@@ -34,7 +36,10 @@
 #    define UNUSED GSHL_UNUSED
 #endif
 
+// #endif // INCLUDE_MACROS_MOD_H_
 // gshl-priority: 90
+// #ifndef INCLUDE_TYPES_MOD_H_
+// #define INCLUDE_TYPES_MOD_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -54,9 +59,13 @@ typedef intmax_t isize;
 typedef float f32;
 typedef double f64;
 
+// #endif // INCLUDE_TYPES_MOD_H_
 // vim: foldmethod=marker
 // gshl-priority: 81
+// #ifndef INCLUDE_FORMAT_WRAPPER_H_
+// #define INCLUDE_FORMAT_WRAPPER_H_
 
+// #include "types/mod.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -201,8 +210,13 @@ usize GSHL_format_count_templates(char **formatP);
 #    define format_memwrite GSHL_format_memwrite
 #endif // GSHL_STRIP_PREFIX
 
+// #endif // INCLUDE_FORMAT_WRAPPER_H_
 // gshl-priority: 80
+// #ifndef INCLUDE_PRINT_MOD_H_
+// #define INCLUDE_PRINT_MOD_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 #include <stdarg.h>
 
@@ -237,6 +251,9 @@ usize GSHL_eprintln(const char *restrict format, ...);
 #    define dprintln GSHL_dprintln
 #endif
 
+// #endif // INCLUDE_PRINT_MOD_H_
+// #ifndef INCLUDE_TYPES_LIMITS_H_
+// #define INCLUDE_TYPES_LIMITS_H_
 
 /// {{{ Macros
 
@@ -280,13 +297,19 @@ usize GSHL_eprintln(const char *restrict format, ...);
 
 /// }}}
 
+// #endif // INCLUDE_TYPES_LIMITS_H_
 // vim: foldmethod=marker
+// #ifndef INCLUDE_TEST_MOD_H_
+// #define INCLUDE_TEST_MOD_H_
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>  // IWYU pragma: keep
 #include <string.h> // IWYU pragma: keep
 
+// #include "ansi/colors.h"
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Macros
 
@@ -310,6 +333,29 @@ usize GSHL_eprintln(const char *restrict format, ...);
             fprintf(stderr,                                                    \
                     " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
                         " FAILED ") " Assertion failed : %s == %s\n",          \
+                    __FILE__, __LINE__, __func__, #EXPR1, #EXPR2);             \
+                                                                               \
+            if (opt.continue_on_fail) {                                        \
+                return;                                                        \
+            }                                                                  \
+        }                                                                      \
+        else {                                                                 \
+            fprintf(stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_GREEN( \
+                        " PASSED ") "\n",                                      \
+                    __FILE__, __LINE__, __func__);                             \
+        }                                                                      \
+    } while (0)
+
+#define GSHL_TEST_NEQUAL(EXPR1, EXPR2, ...)                                    \
+    do {                                                                       \
+        GSHL_TestEqualOpt opt = (GSHL_TestEqualOpt){__VA_ARGS__};              \
+                                                                               \
+        if ((EXPR1) == (EXPR2)) {                                              \
+            *failed_tests += 1;                                                \
+            fprintf(stderr,                                                    \
+                    " %s:%02d " GSHL_FG_CYAN(" %-30s ") " ... " GSHL_FG_RED(   \
+                        " FAILED ") " Assertion failed : %s != %s\n",          \
                     __FILE__, __LINE__, __func__, #EXPR1, #EXPR2);             \
                                                                                \
             if (opt.continue_on_fail) {                                        \
@@ -392,7 +438,11 @@ GSHLDEF usize GSHL_run_tests(const char *filter);
 #    define run_tests GSHL_run_tests
 #endif
 
+// #endif // INCLUDE_TEST_MOD_H_
+// #ifndef INCLUDE_STRING_MOD_H_
+// #define INCLUDE_STRING_MOD_H_
 
+// #include "types/mod.h"
 
 /// {{{ Macros
 
@@ -409,12 +459,22 @@ typedef struct GSHL_StringView {
 
 /// }}}
 
+/// {{{ Functions
+
+char *string_dup(const char *const source);
+
+/// }}}
+
 #ifdef GSHL_TESTS
 #    define STACK_STRING_LEN GSHL_STACK_STRING_LEN
 #    define StringView GSHL_StringView
 #endif
 
+// #endif // INCLUDE_STRING_MOD_H_
+// #ifndef INCLUDE_MATH_MOD_H_
+// #define INCLUDE_MATH_MOD_H_
 
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -426,7 +486,159 @@ usize GSHL_factorial(const usize number);
 #    define factorial GSHL_factorial
 #endif
 
+// #endif // INCLUDE_MATH_MOD_H_
+// #ifndef INCLUDE_HASH_TABLE_MOD_H_
+// #define INCLUDE_HASH_TABLE_MOD_H_
 
+// #include "types/mod.h"
+
+#ifndef GSHL_HASH_TABLE_SIZE
+#    define GSHL_HASH_TABLE_SIZE 256
+#endif
+
+/// {{{ Macros
+
+#define GSHL_HashTable_init(HT, KEY_TYPE, VALUE_TYPE, HASH, ...)               \
+    do {                                                                       \
+        *(HT) = (GSHL_HashTable){__VA_ARGS__};                                 \
+        if ((HT)->table_size == 0) {                                           \
+            (HT)->table_size = GSHL_HASH_TABLE_SIZE;                           \
+        }                                                                      \
+        (HT)->table = calloc((HT)->table_size, sizeof(*(HT)->table));          \
+        (HT)->key_size = sizeof(KEY_TYPE);                                     \
+        (HT)->value_size = sizeof(VALUE_TYPE);                                 \
+        (HT)->hash = HASH;                                                     \
+        (HT)->description = #KEY_TYPE " -> " #VALUE_TYPE;                      \
+        (HT)->key_type = #KEY_TYPE;                                            \
+        (HT)->value_type = #VALUE_TYPE;                                        \
+    } while (0)
+
+#define GSHL_HashTable_insert(HT, KEY, VALUE)                                  \
+    GSHL_HashTable_insert_wrapper(HT, (GSHL_HashTableKey){KEY},                \
+                                  (GSHL_HashTableValue){VALUE})
+
+#define GSHL_HashTable_search(HT, KEY)                                         \
+    GSHL_HashTable_search_wrapper(HT, (GSHL_HashTableKey){KEY})
+
+#define GSHL_HashTable_delete(HT, KEY)                                         \
+    GSHL_HashTable_delete_wrapper(HT, (GSHL_HashTableKey){KEY})
+
+#define GSHL_HashTable_print(HT, KEY_FORMAT, KEY_NAME, VALUE_FORMAT,           \
+                             VALUE_NAME)                                       \
+    do {                                                                       \
+        printf("%s = HashTable [%s][%s] {\n", #HT, (HT).key_type,              \
+               (HT).value_type);                                               \
+        for (usize GSHL_HashTable_index = 0;                                   \
+             GSHL_HashTable_index < GSHL_HASH_TABLE_SIZE;                      \
+             GSHL_HashTable_index++) {                                         \
+            GSHL_HashTableEntry *current = (HT).table[GSHL_HashTable_index];   \
+            if (current == NULL) {                                             \
+                continue;                                                      \
+            }                                                                  \
+            printf("  [" KEY_FORMAT "] = ", current->key.KEY_NAME);            \
+            for (; current != NULL; current = current->next) {                 \
+                printf("%s" VALUE_FORMAT,                                      \
+                       current == (HT).table[GSHL_HashTable_index] ? ""        \
+                                                                   : " -> ",   \
+                       current->value.VALUE_NAME);                             \
+            }                                                                  \
+            printf(" (Bucket: %lu)\n", GSHL_HashTable_index);                  \
+        }                                                                      \
+        printf("}\n");                                                         \
+    } while (0)
+
+/// }}}
+
+/// {{{ Types
+
+typedef struct GSHL_HashTableEntry {
+    union GSHL_HashTableKey {
+        void *opaque; // Generic pointer to key
+        char *string;
+        u8 u8;
+        u16 u16;
+        u32 u32;
+        u64 u64;
+        usize usize;
+        i8 i8;
+        i16 i16;
+        i32 i32;
+        i64 i64;
+        isize isize;
+        bool boolean;
+    } key;
+    union GSHL_HashTableValue {
+        void *opaque; // Generic pointer to value
+        char *string;
+        u8 u8;
+        u16 u16;
+        u32 u32;
+        u64 u64;
+        usize usize;
+        i8 i8;
+        i16 i16;
+        i32 i32;
+        i64 i64;
+        isize isize;
+        bool boolean;
+    } value;
+    // Pointer to the next entry for collision resolution
+    struct GSHL_HashTableEntry *next;
+} GSHL_HashTableEntry;
+
+typedef union GSHL_HashTableKey GSHL_HashTableKey;
+typedef union GSHL_HashTableValue GSHL_HashTableValue;
+typedef usize(GSHL_HashTableHashFunction)(const usize table_size,
+                                          const GSHL_HashTableKey key);
+
+typedef struct GSHL_HashTable {
+    // Array of pointers to entries
+    GSHL_HashTableEntry **table;
+    usize table_size;
+    GSHL_HashTableHashFunction *hash;
+    char *description;
+    char *key_type;
+    char *value_type;
+    usize key_size;   // Size of the key type
+    usize value_size; // Size of the value type
+    isize (*keycmp)(const GSHL_HashTableKey key1, const GSHL_HashTableKey key2);
+} GSHL_HashTable;
+
+/// }}}
+
+/// {{{ Functions
+
+bool GSHL_HashTable_insert_wrapper(GSHL_HashTable *ht,
+                                   const GSHL_HashTableKey key,
+                                   const GSHL_HashTableValue value);
+GSHL_HashTableValue *
+GSHL_HashTable_search_wrapper(const GSHL_HashTable *const ht,
+                              const GSHL_HashTableKey key);
+bool GSHL_HashTable_delete_wrapper(GSHL_HashTable *ht,
+                                   const GSHL_HashTableKey key);
+bool GSHL_HashTable_destroy(GSHL_HashTable *ht);
+
+/// }}}
+
+#ifdef GSHL_STRIP_PREFIX
+typedef GSHL_HashTable HashTable;
+typedef GSHL_HashTableEntry HashTableEntry;
+typedef GSHL_HashTableKey HashTableKey;
+typedef GSHL_HashTableValue HashTableValue;
+#    define HashTable_init GSHL_HashTable_init
+#    define HashTable_insert GSHL_HashTable_insert
+#    define HashTable_search GSHL_HashTable_search
+#    define HashTable_delete GSHL_HashTable_delete
+#    define HashTable_destroy GSHL_HashTable_destroy
+#    define HashTable_print GSHL_HashTable_print
+#endif
+
+// #endif // INCLUDE_HASH_TABLE_MOD_H_
+// #ifndef INCLUDE_FORMAT_USIZE_H_
+// #define INCLUDE_FORMAT_USIZE_H_
+
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -434,7 +646,12 @@ usize write_usize(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_USIZE_H_
+// #ifndef INCLUDE_FORMAT_U8_H_
+// #define INCLUDE_FORMAT_U8_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -442,7 +659,12 @@ usize write_u8(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_U8_H_
+// #ifndef INCLUDE_FORMAT_U64_H_
+// #define INCLUDE_FORMAT_U64_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -450,7 +672,12 @@ usize write_u64(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_U64_H_
+// #ifndef INCLUDE_FORMAT_U32_H_
+// #define INCLUDE_FORMAT_U32_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -458,7 +685,12 @@ usize write_u32(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_U32_H_
+// #ifndef INCLUDE_FORMAT_U16_H_
+// #define INCLUDE_FORMAT_U16_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -466,7 +698,12 @@ usize write_u16(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_U16_H_
+// #ifndef INCLUDE_FORMAT_POINTER_H_
+// #define INCLUDE_FORMAT_POINTER_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -474,7 +711,11 @@ usize write_pointer(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_POINTER_H_
+// #ifndef INCLUDE_FORMAT_MOD_H_
+// #define INCLUDE_FORMAT_MOD_H_
 
+// #include "format/wrapper.h"
 
 #include <stdarg.h>
 
@@ -490,7 +731,12 @@ char *GSHL_formatln(const char *restrict format, ...);
 #    define format GSHL_format
 #endif
 
+// #endif // INCLUDE_FORMAT_MOD_H_
+// #ifndef INCLUDE_FORMAT_ISIZE_H_
+// #define INCLUDE_FORMAT_ISIZE_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -498,7 +744,12 @@ usize write_isize(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_ISIZE_H_
+// #ifndef INCLUDE_FORMAT_I8_H_
+// #define INCLUDE_FORMAT_I8_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -506,7 +757,12 @@ usize write_i8(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_I8_H_
+// #ifndef INCLUDE_FORMAT_I64_H_
+// #define INCLUDE_FORMAT_I64_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -514,7 +770,12 @@ usize write_i64(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_I64_H_
+// #ifndef INCLUDE_FORMAT_I32_H_
+// #define INCLUDE_FORMAT_I32_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -522,7 +783,12 @@ usize write_i32(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_I32_H_
+// #ifndef INCLUDE_FORMAT_I16_H_
+// #define INCLUDE_FORMAT_I16_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -530,7 +796,12 @@ usize write_i16(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_I16_H_
+// #ifndef INCLUDE_FORMAT_HEX_H_
+// #define INCLUDE_FORMAT_HEX_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -538,7 +809,12 @@ usize write_hex(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_HEX_H_
+// #ifndef INCLUDE_FORMAT_F64_H_
+// #define INCLUDE_FORMAT_F64_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -546,7 +822,12 @@ usize write_f64(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_F64_H_
+// #ifndef INCLUDE_FORMAT_F32_H_
+// #define INCLUDE_FORMAT_F32_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -554,7 +835,12 @@ usize write_f32(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_F32_H_
+// #ifndef INCLUDE_FORMAT_CSTRING_H_
+// #define INCLUDE_FORMAT_CSTRING_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -562,7 +848,12 @@ usize write_cstring(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_CSTRING_H_
+// #ifndef INCLUDE_FORMAT_CHAR_H_
+// #define INCLUDE_FORMAT_CHAR_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -570,7 +861,12 @@ usize write_character(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_CHAR_H_
+// #ifndef INCLUDE_FORMAT_BOOL_H_
+// #define INCLUDE_FORMAT_BOOL_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -578,7 +874,12 @@ usize write_boolean(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_BOOL_H_
+// #ifndef INCLUDE_FORMAT_BINARY_H_
+// #define INCLUDE_FORMAT_BINARY_H_
 
+// #include "format/mod.h"
+// #include "types/mod.h"
 
 /// {{{ Functions
 
@@ -586,7 +887,99 @@ usize write_binary(char *buf, GSHL_Template *template);
 
 /// }}}
 
+// #endif // INCLUDE_FORMAT_BINARY_H_
+// #ifndef INCLUDE_DYNAMIC_ARRAY_MOD_H_
+// #define INCLUDE_DYNAMIC_ARRAY_MOD_H_
 
+/// {{{ Macros
+
+#ifndef GSHL_DARRAY_INIT_CAPACITY
+#    define GSHL_DARRAY_INIT_CAPACITY 256
+#else
+#    if GSHL_DARRAY_INIT_CAPACITY <= 0
+#        error "GSHL_DARRAY_INIT_CAPACITY must be > 0"
+#    endif
+#endif
+
+#define GSHL_DArrayTypeDecl(NAME, TYPE)                                        \
+    typedef struct NAME {                                                      \
+        union {                                                                \
+            usize size;                                                        \
+            usize count;                                                       \
+            usize len;                                                         \
+            usize length;                                                      \
+        };                                                                     \
+        usize capacity;                                                        \
+        TYPE *items;                                                           \
+    } NAME
+
+#define GSHL_DArray_init(DARRAY) (DARRAY)->size = 0
+
+#define GSHL_DArray_append(DARRAY, ITEM)                                       \
+    do {                                                                       \
+        if ((DARRAY)->items == NULL) {                                         \
+            (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
+            (DARRAY)->items =                                                  \
+                calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
+        }                                                                      \
+                                                                               \
+        if ((DARRAY)->count + 1 > (DARRAY)->capacity) {                        \
+            (DARRAY)->capacity *= 2;                                           \
+            (DARRAY)->items =                                                  \
+                realloc((DARRAY)->items,                                       \
+                        (DARRAY)->capacity * sizeof(*(DARRAY)->items));        \
+            assert((DARRAY)->items != NULL);                                   \
+        }                                                                      \
+                                                                               \
+        (DARRAY)->items[(DARRAY)->count++] = ITEM;                             \
+    } while (0)
+
+#define GSHL_DArray_insert(DARRAY, INDEX, ITEM)                                \
+    do {                                                                       \
+        assert(0 <= INDEX && INDEX <= (DARRAY)->count);                        \
+        if ((DARRAY)->count >= (DARRAY)->capacity) {                           \
+            (DARRAY)->capacity *= 2;                                           \
+            (DARRAY)->items =                                                  \
+                realloc((DARRAY)->items,                                       \
+                        (DARRAY)->capacity * sizeof(*(DARRAY)->items));        \
+            assert((DARRAY)->items != NULL);                                   \
+        }                                                                      \
+        memmove(&(DARRAY)->items[INDEX + 1], &(DARRAY)->items[INDEX],          \
+                ((DARRAY)->count - INDEX) * sizeof(*(DARRAY)->items));         \
+        (DARRAY)->items[INDEX] = ITEM;                                         \
+        (DARRAY)->count++;                                                     \
+    } while (0)
+
+#define GSHL_DArray_remove(DARRAY, INDEX)                                      \
+    do {                                                                       \
+        assert(INDEX < (DARRAY)->count);                                       \
+        memmove(&(DARRAY)->items[INDEX], &(DARRAY)->items[INDEX + 1],          \
+                ((DARRAY)->count - INDEX - 1) * sizeof(*(DARRAY)->items));     \
+        (DARRAY)->count--;                                                     \
+    } while (0)
+
+#define GSHL_DArray_destroy(DARRAY)                                            \
+    do {                                                                       \
+        free((DARRAY)->items);                                                 \
+        memset(DARRAY, 0, sizeof(*DARRAY));                                    \
+    } while (0)
+
+/// }}}
+
+#ifdef GSHL_STRIP_PREFIX
+#    define DArrayTypeDecl GSHL_DArrayTypeDecl
+#    define DArray_init GSHL_DArray_init
+#    define DArray_append GSHL_DArray_append
+#    define DArray_insert GSHL_DArray_insert
+#    define DArray_remove GSHL_DArray_remove
+#    define DArray_destroy GSHL_DArray_destroy
+#endif
+
+// #endif // INCLUDE_DYNAMIC_ARRAY_MOD_H_
+// #ifndef INCLUDE_ARRAY_MOD_H_
+// #define INCLUDE_ARRAY_MOD_H_
+
+// #include "types/mod.h"
 
 /// {{{ Macros
 
@@ -660,8 +1053,15 @@ typedef struct GSHL_ArrayForEachOpts {
 
 /// }}}
 
+// #endif // INCLUDE_ARRAY_MOD_H_
+// #ifndef INCLUDE_ANSI_MOD_H_
+// #define INCLUDE_ANSI_MOD_H_
 
+// #include "ansi/colors.h" // IWYU pragma: export
 
+// #endif // INCLUDE_ANSI_MOD_H_
+// #ifndef INCLUDE_ANSI_COLORS_H_
+// #define INCLUDE_ANSI_COLORS_H_
 
 /// {{{ Macros
 
@@ -709,14 +1109,17 @@ typedef struct GSHL_ArrayForEachOpts {
 
 /// }}}
 
+// #endif // INCLUDE_ANSI_COLORS_H_
 #endif // INCLUDE_GSHL_H_
 #ifdef GSHL_IMPLEMENTATION
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/types/mod.c"
+#    line 0 "src/types/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "types/mod.h"
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(types_size)
 {
@@ -740,10 +1143,12 @@ GSHL_TEST(types_size)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/types/limits.c"
+#    line 0 "src/types/limits.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "types/limits.h"
 
 #ifdef GSHL_TESTS
+// #    include "test/mod.h"
 
 GSHL_TEST(types_limits)
 {
@@ -759,8 +1164,11 @@ GSHL_TEST(types_limits)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 4 "src/test/mod.c"
+#    line 0 "src/test/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "test/mod.h"
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -828,8 +1236,22 @@ int test_main(int argc, char *argv[])
     return 0;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/print/mod.c"
+#    line 0 "src/string/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "string/mod.h"
+#include <stdlib.h>
+#include <string.h>
+
+char *string_dup(const char *const source)
+{
+    const usize len = strlen(source);
+    return strcpy(malloc(len + 1), source);
+}
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/print/mod.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "print/mod.h"
+// #include "format/mod.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -940,8 +1362,9 @@ usize GSHL_eprintln(const char *restrict format, ...)
     return count;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/math/mod.c"
+#    line 0 "src/math/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "math/mod.h"
 
 usize GSHL_factorial(const usize number)
 {
@@ -955,6 +1378,7 @@ usize GSHL_factorial(const usize number)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(factorial)
 {
@@ -970,10 +1394,207 @@ GSHL_TEST(factorial)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/wrapper.c"
+#    line 0 "src/hash_table/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "hash_table/mod.h"
+// #include "macros/mod.h"
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
+bool GSHL_HashTable_insert_wrapper(GSHL_HashTable *ht,
+                                   const GSHL_HashTableKey key,
+                                   const GSHL_HashTableValue value)
+{
+    const usize index = ht->hash(ht->table_size, key);
+
+    const GSHL_HashTableEntry def = {.key = key, .value = value, .next = NULL};
+
+    // Collision handling
+    if (ht->table[index] == NULL) {
+        ht->table[index] = memcpy(malloc(sizeof(def)), &def, sizeof(def));
+        GSHL_ASSERT(ht->table[index] != NULL);
+        return true;
+    }
+
+    GSHL_HashTableEntry *current = NULL;
+    for (current = ht->table[index]; current->next != NULL;
+         current = current->next) {
+        if (ht->keycmp != NULL && ht->keycmp(current->key, key) != 0) {
+            continue;
+        }
+        else if (ht->keycmp == NULL &&
+                 memcmp(&current->key, &key, ht->key_size) != 0) {
+            continue;
+        }
+
+        current->value = value; // Update value if key exists
+        return false;
+    }
+
+    // Append to the end of the chain
+    current->next = memcpy(malloc(sizeof(def)), &def, sizeof(def));
+    GSHL_ASSERT(current->next != NULL);
+
+    return true;
+}
+
+GSHL_HashTableValue *
+GSHL_HashTable_search_wrapper(const GSHL_HashTable *const ht,
+                              const GSHL_HashTableKey key)
+{
+    const usize index = ht->hash(ht->table_size, key);
+    for (GSHL_HashTableEntry *current = ht->table[index]; current != NULL;
+         current = current->next) {
+        if (ht->keycmp != NULL && ht->keycmp(current->key, key) != 0) {
+            continue;
+        }
+        else if (ht->keycmp == NULL &&
+                 memcmp(&current->key, &key, sizeof(key)) != 0) {
+            continue;
+        }
+
+        return &current->value; // Return pointer to the value
+    }
+
+    return NULL; // Not found
+}
+
+bool GSHL_HashTable_delete_wrapper(GSHL_HashTable *ht,
+                                   const GSHL_HashTableKey key)
+{
+    const usize index = ht->hash(ht->table_size, key);
+    for (GSHL_HashTableEntry *current = ht->table[index], *prev = NULL;
+         current != NULL; prev = current, current = current->next) {
+        if (ht->keycmp != NULL && ht->keycmp(current->key, key) != 0) {
+            continue;
+        }
+        else if (ht->keycmp == NULL &&
+                 memcmp(&current->key, &key, sizeof(key)) != 0) {
+            continue;
+        }
+
+        if (prev == NULL) {
+            ht->table[index] = current->next; // Remove the head entry
+        }
+        else {
+            prev->next = current->next; // Remove the current entry
+        }
+
+        free(current); // Free the entry
+        return true;
+    }
+
+    return false;
+}
+
+bool GSHL_HashTable_destroy(GSHL_HashTable *ht)
+{
+    for (usize entryI = 0; entryI < ht->table_size; ++entryI) {
+        for (GSHL_HashTableEntry *entry = ht->table[entryI], *next = NULL;
+             entry != NULL; entry = next) {
+            next = entry->next;
+            free(entry);
+        }
+    }
+
+    free(ht->table);
+
+    memset(ht, 0, sizeof(*ht));
+
+    return true;
+}
+
+#ifdef GSHL_TESTS
+// #    include "test/mod.h"
+
+static usize hash(const usize table_size, const GSHL_HashTableKey key)
+{
+    usize hash = 0;
+
+    for (char *c = key.string; *c != '\0'; ++c) {
+        hash = (hash << 5) + *c;
+    }
+
+    return hash % table_size;
+}
+
+static isize keycmp(const GSHL_HashTableKey key1, const GSHL_HashTableKey key2)
+{
+    return strcmp(key1.string, key2.string);
+}
+
+GSHL_TEST(hash_table_string2i32)
+{
+
+    GSHL_HashTable ht = {};
+    // GSHL_TEST_EQUAL(ht.table, NULL);
+    GSHL_TEST_EQUAL(ht.hash, NULL);
+    GSHL_TEST_EQUAL(ht.key_size, 0);
+    GSHL_TEST_EQUAL(ht.value_size, 0);
+
+    // GSHL_HashTable_init(&ht, hash);
+    GSHL_HashTable_init(&ht, char *, i32, hash, .keycmp = keycmp);
+    // GSHL_TEST_NEQUAL(ht.table, NULL);
+    GSHL_TEST_EQUAL(ht.hash, hash);
+    GSHL_TEST_EQUAL(ht.key_size, 8);
+    GSHL_TEST_EQUAL(ht.value_size, 4);
+    GSHL_TEST_STR_EQUAL(ht.description, "char * -> i32");
+
+    GSHL_TEST_EQUAL(GSHL_HashTable_insert(&ht, .string = "foo", .i32 = 34),
+                    true);
+    GSHL_TEST_EQUAL(GSHL_HashTable_insert(&ht, .string = "bar", .i32 = 35),
+                    true);
+    GSHL_TEST_EQUAL(GSHL_HashTable_insert(&ht, .string = "baz", .i32 = 69),
+                    true);
+
+    GSHL_TEST_NEQUAL(GSHL_HashTable_search(&ht, .string = "foo"), NULL);
+    GSHL_TEST_NEQUAL(GSHL_HashTable_search(&ht, .string = "bar"), NULL);
+    GSHL_TEST_NEQUAL(GSHL_HashTable_search(&ht, .string = "baz"), NULL);
+    GSHL_TEST_EQUAL(GSHL_HashTable_search(&ht, .string = "asdf"), NULL);
+    const char key[] = "foo";
+    GSHL_TEST_NEQUAL(GSHL_HashTable_search(&ht, .string = (char *)key), NULL);
+
+    GSHL_TEST_EQUAL(GSHL_HashTable_delete(&ht, .string = "1"), false);
+    GSHL_TEST_EQUAL(GSHL_HashTable_delete(&ht, .string = "2"), false);
+    GSHL_TEST_EQUAL(GSHL_HashTable_delete(&ht, .string = "3"), false);
+    GSHL_TEST_EQUAL(GSHL_HashTable_delete(&ht, .string = "4"), false);
+    GSHL_TEST_EQUAL(GSHL_HashTable_delete(&ht, .string = "foo"), true);
+    GSHL_TEST_EQUAL(GSHL_HashTable_search(&ht, .string = "foo"), NULL);
+    GSHL_TEST_NEQUAL(GSHL_HashTable_search(&ht, .string = "bar"), NULL);
+
+    GSHL_HashTable_destroy(&ht);
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/format/wrapper.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/wrapper.h"
+
+// #include "format/binary.h"  // IWYU pragma: keep
+// #include "format/bool.h"    // IWYU pragma: keep
+// #include "format/char.h"    // IWYU pragma: keep
+// #include "format/cstring.h" // IWYU pragma: keep
+// #include "format/f32.h"     // IWYU pragma: keep
+// #include "format/f64.h"     // IWYU pragma: keep
+// #include "format/hex.h"     // IWYU pragma: keep
+// #include "format/i16.h"     // IWYU pragma: keep
+// #include "format/i32.h"     // IWYU pragma: keep
+// #include "format/i64.h"     // IWYU pragma: keep
+// #include "format/i8.h"      // IWYU pragma: keep
+// #include "format/isize.h"   // IWYU pragma: keep
+// #include "format/pointer.h" // IWYU pragma: keep
+// #include "format/u16.h"     // IWYU pragma: keep
+// #include "format/u32.h"     // IWYU pragma: keep
+// #include "format/u64.h"     // IWYU pragma: keep
+// #include "format/u8.h"      // IWYU pragma: keep
+// #include "format/usize.h"   // IWYU pragma: keep
+
+// #include "array/mod.h"
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -1442,6 +2063,7 @@ GSHL_format_wrapperv(const char *restrict format,
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(format_wrapper)
 {
@@ -1821,9 +2443,13 @@ GSHL_TEST(format_wrapper)
 
 #endif // GSHL_TEST
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/usize.c"
+#    line 0 "src/format/usize.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/usize.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -1871,6 +2497,7 @@ usize write_usize(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_usize)
 {
@@ -1911,9 +2538,13 @@ GSHL_TEST(write_usize)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/u8.c"
+#    line 0 "src/format/u8.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/mod.h"
+// #include "format/usize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -1926,9 +2557,13 @@ usize write_u8(char *buf, GSHL_Template *t_mut)
     return write_usize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/u64.c"
+#    line 0 "src/format/u64.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/u64.h"
+// #include "format/usize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -1941,9 +2576,13 @@ usize write_u64(char *buf, GSHL_Template *t_mut)
     return write_usize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/u32.c"
+#    line 0 "src/format/u32.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/u32.h"
+// #include "format/usize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -1956,9 +2595,13 @@ usize write_u32(char *buf, GSHL_Template *t_mut)
     return write_usize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/u16.c"
+#    line 0 "src/format/u16.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/u16.h"
+// #include "format/usize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -1971,9 +2614,12 @@ usize write_u16(char *buf, GSHL_Template *t_mut)
     return write_usize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/pointer.c"
+#    line 0 "src/format/pointer.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/pointer.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2030,6 +2676,7 @@ usize write_pointer(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_pointer)
 {
@@ -2056,8 +2703,9 @@ GSHL_TEST(write_pointer)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/mod.c"
+#    line 0 "src/format/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/mod.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -2109,9 +2757,12 @@ char *GSHL_formatln(const char *restrict format, ...)
     return result.string;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/isize.c"
+#    line 0 "src/format/isize.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/isize.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -2169,6 +2820,7 @@ usize write_isize(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_isize)
 {
@@ -2200,9 +2852,13 @@ GSHL_TEST(write_isize)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/i8.c"
+#    line 0 "src/format/i8.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/i8.h"
+// #include "format/isize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -2215,9 +2871,13 @@ usize write_i8(char *buf, GSHL_Template *t_mut)
     return write_isize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/i64.c"
+#    line 0 "src/format/i64.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/i64.h"
+// #include "format/isize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -2230,9 +2890,13 @@ usize write_i64(char *buf, GSHL_Template *t_mut)
     return write_isize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/i32.c"
+#    line 0 "src/format/i32.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/i32.h"
+// #include "format/isize.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -2245,9 +2909,14 @@ usize write_i32(char *buf, GSHL_Template *t_mut)
     return write_isize(buf, t_mut);
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 3 "src/format/i16.c"
+#    line 0 "src/format/i16.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/i16.h"
+// #include "format/isize.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 
@@ -2262,6 +2931,7 @@ usize write_i16(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_i16)
 {
@@ -2285,8 +2955,11 @@ GSHL_TEST(write_i16)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 4 "src/format/hex.c"
+#    line 0 "src/format/hex.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/hex.h"
+// #include "macros/mod.h"
+// #include "string/mod.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2329,6 +3002,7 @@ usize write_hex(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_hex)
 {
@@ -2357,9 +3031,12 @@ GSHL_TEST(write_hex)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/f64.c"
+#    line 0 "src/format/f64.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/f64.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -2377,9 +3054,12 @@ usize write_f64(char *buf, GSHL_Template *t_mut)
     return 0;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/f32.c"
+#    line 0 "src/format/f32.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/f32.h"
 
+// #include "macros/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -2397,8 +3077,11 @@ usize write_f32(char *buf, GSHL_Template *t_mut)
     return 0;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 4 "src/format/cstring.c"
+#    line 0 "src/format/cstring.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/cstring.h"
+// #include "macros/mod.h"
+// #include "string/mod.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2419,6 +3102,7 @@ usize write_cstring(char *buf, GSHL_Template *t_mut)
 }
 
 #ifdef GSHL_TESTS
+// #    include "test/mod.h"
 
 GSHL_TEST(write_cstring)
 {
@@ -2445,9 +3129,13 @@ GSHL_TEST(write_cstring)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/char.c"
+#    line 0 "src/format/char.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/char.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2471,6 +3159,7 @@ usize write_character(char *buf, GSHL_Template *t_mut)
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(write_char)
 {
@@ -2505,9 +3194,13 @@ GSHL_TEST(write_char)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/bool.c"
+#    line 0 "src/format/bool.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/bool.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <string.h>
@@ -2540,6 +3233,7 @@ usize write_boolean(char *buf, GSHL_Template *t_mut)
 }
 
 #ifdef GSHL_TESTS
+// #    include "test/mod.h"
 
 GSHL_TEST(write_boolean)
 {
@@ -2569,9 +3263,13 @@ GSHL_TEST(write_boolean)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 2 "src/format/binary.c"
+#    line 0 "src/format/binary.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/binary.h"
 
+// #include "macros/mod.h"
+// #include "string/mod.h"
+// #include "types/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -2611,6 +3309,7 @@ usize write_binary(char *buf, GSHL_Template *t_mut)
 }
 
 #ifdef GSHL_TESTS
+// #    include "test/mod.h"
 
 GSHL_TEST(write_binary)
 {
@@ -2640,12 +3339,95 @@ GSHL_TEST(write_binary)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
-#    line 4 "src/array/mod.c"
+#    line 0 "src/dynamic_array/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
+// #include "dynamic_array/mod.h"
+
+#include <assert.h>
+#include <stdlib.h>
+
+#ifdef GSHL_TESTS
+// #    include "test/mod.h"
+
+GSHL_DArrayTypeDecl(DArray, int);
+
+GSHL_TEST(da)
+{
+    DArray da = {};
+    GSHL_TEST_EQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, 0);
+    GSHL_TEST_EQUAL(da.size, 0);
+
+    GSHL_DArray_init(&da);
+    GSHL_TEST_EQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, 0);
+    GSHL_TEST_EQUAL(da.size, 0);
+
+    GSHL_DArray_append(&da, 10);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.size, 1);
+
+    GSHL_DArray_append(&da, 67);
+    GSHL_DArray_append(&da, 420);
+    GSHL_DArray_append(&da, 69);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.items[0], 10);
+    GSHL_TEST_EQUAL(da.items[1], 67);
+    GSHL_TEST_EQUAL(da.items[2], 420);
+    GSHL_TEST_EQUAL(da.items[3], 69);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.size, 4);
+
+    GSHL_DArray_insert(&da, 2, 12345);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.items[0], 10);
+    GSHL_TEST_EQUAL(da.items[1], 67);
+    GSHL_TEST_EQUAL(da.items[2], 12345);
+    GSHL_TEST_EQUAL(da.items[3], 420);
+    GSHL_TEST_EQUAL(da.items[4], 69);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.size, 5);
+
+    GSHL_DArray_remove(&da, 1);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.items[0], 10);
+    GSHL_TEST_EQUAL(da.items[1], 12345);
+    GSHL_TEST_EQUAL(da.items[2], 420);
+    GSHL_TEST_EQUAL(da.items[3], 69);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.size, 4);
+
+    GSHL_DArray_init(&da);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_NEQUAL(da.capacity, 0);
+    GSHL_TEST_EQUAL(da.size, 0);
+
+    for (usize n = 1; n <= 3 * GSHL_DARRAY_INIT_CAPACITY; n++) {
+        GSHL_DArray_append(&da, n);
+    }
+
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, 4 * GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.count, 3 * GSHL_DARRAY_INIT_CAPACITY);
+
+    GSHL_DArray_destroy(&da);
+    GSHL_TEST_EQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, 0);
+    GSHL_TEST_EQUAL(da.count, 0);
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/array/mod.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "array/mod.h"
+// #include "types/mod.h"
 #include <stdlib.h>
 
 #ifdef GSHL_TESTS
 
+// #    include "test/mod.h"
 
 GSHL_TEST(stackarray)
 {
