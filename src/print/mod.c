@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static const struct GSHL_PrintWrapperOpts defPrintOpts = {.fd = STDOUT_FILENO};
-
 usize GSHL_print_wrapperv(const GSHL_PrintWrapperOpts print_opts,
                           const GSHL_FormatWrapperOpts format_opts,
                           const char *restrict format, va_list args)
