@@ -14,7 +14,7 @@ usage() {
 
 TEMP=$(getopt \
 	--options 'h' \
-	--long 'help' \
+	--long 'help,dry-run' \
 	--name "$(basename "$0")" -- "$@")
 
 # shellcheck disable=SC2181
@@ -32,6 +32,10 @@ while true
 do
   case "$1" in
     -h | --help) usage ;;
+    --dry-run)
+      single_header=/dev/null
+      shift;
+      ;;
     --)
       shift
       break
@@ -47,26 +51,46 @@ deps="$*"
 
 [ -z "$deps" ] && usage
 
-header_deps="$(echo "$deps" | tr ' ' '\n' | grep '.h$' | awk '!seen[$0]++' | tr '\n' ' ')"
-src_deps="$(echo "$deps" | tr ' ' '\n' | grep '.c$' | awk '!seen[$0]++' | tr '\n' ' ')"
+header_deps="$(echo "$deps" \
+  | tr ' ' '\n' \
+  | grep '.h$' \
+  | awk '!seen[$0]++' \
+  | tr '\n' ' ')"
 
+src_deps="$(echo "$deps" \
+  | tr ' ' '\n' \
+  | grep '.c$' \
+  | awk '!seen[$0]++' \
+  | tr '\n' ' ')"
+
+rm --force "$single_header" || true
+
+echo '#ifndef INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
+echo '#define INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
 for header in $header_deps
 do
-  echo "$header" | grep --quiet 'mod\.h$' || continue
-  grep --invert-match '^#include "' "$header" >> "$single_header" || true
-  printf '\033[32m%s\033[0m %s\n' ✓ "$header"
-done
-
-for header in $header_deps
+  awk '/^\/\/ gshl-priority: [0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$header"
+done | sort --reverse | while read -r priority header
 do
-  echo "$header" | grep --quiet 'mod\.h$' && continue
-  grep --invert-match '^#include "' "$header" >> "$single_header" || true
-  printf '\033[32m%s\033[0m %s\n' ✓ "$header"
+  printf ' %i %s\r' "$priority" "$header"
+  cat "$header" \
+    | grep --invert-match '^#\s*include "' \
+    | grep --invert-match '^#ifndef INCLUDE_' \
+    | grep --invert-match '^#define INCLUDE_' \
+    | grep --invert-match '^#endif // INCLUDE_' \
+    | tee --append "$single_header" >/dev/null
+  printf '\033[32m%s\033[0m %i %s\n' ✓ "$priority" "$header"
 done
+echo '#endif // INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
 
-echo "#ifdef GSHL_IMPLEMENTATION" >> "$single_header"
+echo '#ifdef GSHL_IMPLEMENTATION' | tee --append "$single_header" >/dev/null
 for src in $src_deps
 do
+  awk '/^\/\/ gshl-priority: [0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$src"
+done | sort --reverse | while read -r priority src
+do
+  printf ' %i %s\r' "$priority" "$src"
+
   lines="$(awk 'END {print NR}' "$src")"
   [ "$lines" -le 0 ] && continue
 
@@ -76,12 +100,16 @@ do
     printf 'Invalid first empty line number for %s:%d\n' "$src" "$first_empty_line_number"
     exit 1
   fi
+
   {
     printf '#ifdef GSHL_SOURCE_CODE_MAPPING\n'
     printf '#line %d "%s"\n' "$first_empty_line_number" "$src"
     printf '#endif // GSHL_SOURCE_CODE_MAPPING\n'
-  } | clang-format >> "$single_header"
-  grep --invert-match '^#include "' "$src" >> "$single_header"
-  printf '\033[32m%s\033[0m %s\n' ✓ "$src"
+  } | clang-format | tee --append "$single_header" >/dev/null
+  cat "$src" \
+    | grep --invert-match '^#\s*include "' \
+    | tee --append "$single_header" >/dev/null
+
+  printf '\033[32m%s\033[0m %i %s\n' ✓ "$priority" "$src"
 done
-echo "#endif // GSHL_IMPLEMENTATION" >> "$single_header"
+echo '#endif // GSHL_IMPLEMENTATION' | tee --append "$single_header" >/dev/null
