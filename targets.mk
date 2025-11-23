@@ -1,5 +1,6 @@
 TARGETS = \
 					$(TARGET_DIR)/gshl-test \
+					$(TARGET_DIR)/examples/dynamic-array \
 					$(TARGET_DIR)/examples/macros \
 					$(TARGET_DIR)/examples/print \
 					$(TARGET_DIR)/benches/print \
@@ -29,6 +30,11 @@ $(TARGET_DIR)/examples/macros: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 
 DEPS := examples/print.c
 $(TARGET_DIR)/examples/print: $(DEPS:%.c=$(BUILD_DIR)/%.o)
+	@mkdir --parents $(shell dirname $@)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+DEPS := examples/dynamic-array.c
+$(TARGET_DIR)/examples/dynamic-array: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 	@mkdir --parents $(shell dirname $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
