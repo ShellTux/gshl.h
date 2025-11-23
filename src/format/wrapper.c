@@ -214,8 +214,8 @@ usize GSHL_format_count_templates(char **formatP)
             for (; formatC[0] != '\0' && formatC[1] != '}'; formatC += 1) {
             }
 
-            assert(formatC[0] != '\0');
-            assert(formatC[1] == '}');
+            GSHL_ASSERT(formatC[0] != '\0');
+            GSHL_ASSERT(formatC[1] == '}');
 
             parenBalance -= 1;
 
@@ -257,7 +257,7 @@ GSHL_format_wrapperv(const char *restrict format,
     else {
         result.templates.items =
             calloc(result.templates.count, sizeof(*result.templates.items));
-        assert(result.templates.items != NULL);
+        GSHL_ASSERT(result.templates.items != NULL);
 
         usize template_index = 0;
 
@@ -365,7 +365,7 @@ GSHL_format_wrapperv(const char *restrict format,
                 for (; formatC[0] != '}'; formatC += 1) {
                 }
 
-                assert(formatC[0] == '}');
+                GSHL_ASSERT(formatC[0] == '}');
                 t->formatEnd = formatC + 1;
 
                 result.count += t->count;
