@@ -18,6 +18,12 @@ typedef struct GSHL_StringView {
 
 /// }}}
 
+/// {{{ Functions
+
+char *string_dup(const char *const source);
+
+/// }}}
+
 #ifdef GSHL_TESTS
 #    define STACK_STRING_LEN GSHL_STACK_STRING_LEN
 #    define StringView GSHL_StringView
