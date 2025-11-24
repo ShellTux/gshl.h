@@ -3,24 +3,17 @@
 #undef GSHL_TESTS
 #include "../gshl.h"
 
-static usize hash_string(const usize table_size,
-                         const union GSHL_HashTableKey key)
+static usize hash_djb2_string(const union GSHL_HashTableKey key)
 {
-    usize hash = 0;
-
-    for (char *c = key.string; *c != '\0'; ++c) {
-        hash = (hash << 5) + *c;
-    }
-
-    return hash % table_size;
+    return hash_djb2(key.string);
 }
 
-usize hash_isize(const usize table_size, const GSHL_HashTableKey key)
+usize hash_isize(const GSHL_HashTableKey key)
 {
     const isize value = key.isize;
 
     // Use bit manipulation and modulus to ensure it's within the table size
-    return (usize)(value ^ (value >> (sizeof(isize) * 8 - 1))) % table_size;
+    return (usize)(value ^ (value >> (sizeof(isize) * 8 - 1)));
 }
 
 static isize keycmp_string(const HashTableKey key1, const HashTableKey key2)
@@ -36,7 +29,8 @@ int main(void)
         // terminated string) we need to provide a function to do key
         // comparison. Otherwise a default comparison function will be used to
         // compare keys
-        HashTable_init(&ht, char *, i32, hash_string, .keycmp = keycmp_string);
+        HashTable_init(&ht, char *, i32, hash_djb2_string,
+                       .keycmp = keycmp_string);
 
         HashTable_insert(&ht, .string = "foo", .i32 = 35);
         HashTable_insert(&ht, .string = "bar", .i32 = 34);

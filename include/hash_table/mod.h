@@ -99,8 +99,7 @@ typedef struct GSHL_HashTableEntry {
 
 typedef union GSHL_HashTableKey GSHL_HashTableKey;
 typedef union GSHL_HashTableValue GSHL_HashTableValue;
-typedef usize(GSHL_HashTableHashFunction)(const usize table_size,
-                                          const GSHL_HashTableKey key);
+typedef usize(GSHL_HashTableHashFunction)(const GSHL_HashTableKey key);
 
 typedef struct GSHL_HashTable {
     // Array of pointers to entries

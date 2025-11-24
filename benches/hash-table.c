@@ -4,15 +4,9 @@
 #undef GSHL_TESTS
 #include "../gshl.h"
 
-static usize hash(const usize table_size, const GSHL_HashTableKey key)
+static usize hash_djb2_string(const HashTableKey key)
 {
-    usize hash = 0;
-
-    for (char *c = key.string; *c != '\0'; ++c) {
-        hash = (hash << 5) + *c;
-    }
-
-    return hash % table_size;
+    return hash_djb2(key.string);
 }
 
 int main(void)
@@ -20,7 +14,7 @@ int main(void)
     srand(0);
 
     HashTable ht = {};
-    HashTable_init(&ht, char *, usize, hash);
+    HashTable_init(&ht, char *, usize, hash_djb2_string);
 
     char bufs[1000][30] = {};
     for (usize i = 0; i < ARRAY_LEN(bufs); ++i) {

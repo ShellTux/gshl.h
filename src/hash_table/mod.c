@@ -9,7 +9,7 @@ bool GSHL_HashTable_insert_wrapper(GSHL_HashTable *ht,
                                    const GSHL_HashTableKey key,
                                    const GSHL_HashTableValue value)
 {
-    const usize index = ht->hash(ht->table_size, key);
+    const usize index = ht->hash(key) % ht->table_size;
 
     const GSHL_HashTableEntry def = {.key = key, .value = value, .next = NULL};
 
@@ -46,7 +46,7 @@ GSHL_HashTableValue *
 GSHL_HashTable_search_wrapper(const GSHL_HashTable *const ht,
                               const GSHL_HashTableKey key)
 {
-    const usize index = ht->hash(ht->table_size, key);
+    const usize index = ht->hash(key) % ht->table_size;
     for (GSHL_HashTableEntry *current = ht->table[index]; current != NULL;
          current = current->next) {
         if (ht->keycmp != NULL && ht->keycmp(current->key, key) != 0) {
@@ -66,7 +66,7 @@ GSHL_HashTable_search_wrapper(const GSHL_HashTable *const ht,
 bool GSHL_HashTable_delete_wrapper(GSHL_HashTable *ht,
                                    const GSHL_HashTableKey key)
 {
-    const usize index = ht->hash(ht->table_size, key);
+    const usize index = ht->hash(key) % ht->table_size;
     for (GSHL_HashTableEntry *current = ht->table[index], *prev = NULL;
          current != NULL; prev = current, current = current->next) {
         if (ht->keycmp != NULL && ht->keycmp(current->key, key) != 0) {
@@ -111,7 +111,7 @@ bool GSHL_HashTable_destroy(GSHL_HashTable *ht)
 #ifdef GSHL_TESTS
 #    include "test/mod.h"
 
-static usize hash(const usize table_size, const GSHL_HashTableKey key)
+static usize GSHL_test_hash_string(const GSHL_HashTableKey key)
 {
     usize hash = 0;
 
@@ -119,7 +119,7 @@ static usize hash(const usize table_size, const GSHL_HashTableKey key)
         hash = (hash << 5) + *c;
     }
 
-    return hash % table_size;
+    return hash;
 }
 
 static isize keycmp(const GSHL_HashTableKey key1, const GSHL_HashTableKey key2)
@@ -137,9 +137,10 @@ GSHL_TEST(hash_table_string2i32)
     GSHL_TEST_EQUAL(ht.value_size, 0);
 
     // GSHL_HashTable_init(&ht, hash);
-    GSHL_HashTable_init(&ht, char *, i32, hash, .keycmp = keycmp);
+    GSHL_HashTable_init(&ht, char *, i32, GSHL_test_hash_string,
+                        .keycmp = keycmp);
     // GSHL_TEST_NEQUAL(ht.table, NULL);
-    GSHL_TEST_EQUAL(ht.hash, hash);
+    GSHL_TEST_EQUAL(ht.hash, GSHL_test_hash_string);
     GSHL_TEST_EQUAL(ht.key_size, 8);
     GSHL_TEST_EQUAL(ht.value_size, 4);
     GSHL_TEST_STR_EQUAL(ht.description, "char * -> i32");
