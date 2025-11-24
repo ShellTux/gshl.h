@@ -20,13 +20,14 @@ typedef struct GSHL_StringView {
 
 /// {{{ Functions
 
-char *string_dup(const char *const source);
+char *GSHL_string_dup(const char *const source);
 
 /// }}}
 
 #ifdef GSHL_TESTS
 #    define STACK_STRING_LEN GSHL_STACK_STRING_LEN
 #    define StringView GSHL_StringView
+#    define string_dup GSHL_string_dup
 #endif
 
 #endif // INCLUDE_STRING_MOD_H_
