@@ -31,6 +31,7 @@
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
                 calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
+            GSHL_ASSERT((DARRAY)->items != NULL);                              \
         }                                                                      \
                                                                                \
         if ((DARRAY)->count + 1 > (DARRAY)->capacity) {                        \

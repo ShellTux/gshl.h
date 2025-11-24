@@ -16,6 +16,7 @@
             (HT)->table_size = GSHL_HASH_TABLE_SIZE;                           \
         }                                                                      \
         (HT)->table = calloc((HT)->table_size, sizeof(*(HT)->table));          \
+        GSHL_ASSERT(sizeof(KEY_TYPE) <= sizeof((HT)->table[0]->key));          \
         (HT)->key_size = sizeof(KEY_TYPE);                                     \
         (HT)->value_size = sizeof(VALUE_TYPE);                                 \
         (HT)->hash = HASH;                                                     \
