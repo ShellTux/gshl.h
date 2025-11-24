@@ -75,6 +75,10 @@ typedef enum GSHL_TemplateKind {
 #undef KIND
 } GSHL_TemplateKind;
 
+struct GSHL_Template;
+
+typedef usize(GSHL_TemplateWriteFunction)(char *, struct GSHL_Template *);
+
 typedef struct GSHL_Template {
     char *formatStart, *formatEnd;
     usize count;
@@ -101,7 +105,7 @@ typedef struct GSHL_Template {
     // Function to write value into buf
     union {
 #define KIND(ENUM, NAME, TYPE, VA_ARG_TYPE, BIT_SHIFT, OPTS, ...)              \
-    usize (*NAME)(char *, struct GSHL_Template *);
+    GSHL_TemplateWriteFunction *NAME;
         GSHL_TEMPLATE_KINDS
 #undef KIND
     } write;

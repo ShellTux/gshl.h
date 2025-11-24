@@ -1,4 +1,4 @@
-CC  = gcc
+CC  = clang
 CXX = g++
 
 MODE ?= DEBUG

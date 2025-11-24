@@ -77,6 +77,7 @@
               }
               {
                 packages = [
+                  pkgs.clang
                   pkgs.clang-tools
                   pkgs.cmake
                   pkgs.codespell
