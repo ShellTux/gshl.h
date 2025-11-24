@@ -6,6 +6,8 @@ TARGETS = \
 					$(TARGET_DIR)/examples/print \
 					$(TARGET_DIR)/benches/print \
 					$(TARGET_DIR)/benches/print.flamegraph.svg \
+					$(TARGET_DIR)/benches/hash-table \
+					$(TARGET_DIR)/benches/hash-table.flamegraph.svg \
 					$(TARGET_DIR)/libgshl.so \
 					$(TARGET_DIR)/libgshl.a
 
@@ -46,6 +48,11 @@ $(TARGET_DIR)/examples/hash-table: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 
 DEPS := benches/print.c
 $(TARGET_DIR)/benches/print: $(DEPS:%.c=$(BUILD_DIR)/%.o)
+	@mkdir --parents $(shell dirname $@)
+	$(CC) -pg -o $@ $^ $(LDFLAGS) -lm
+
+DEPS := benches/hash-table.c
+$(TARGET_DIR)/benches/hash-table: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 	@mkdir --parents $(shell dirname $@)
 	$(CC) -pg -o $@ $^ $(LDFLAGS) -lm
 
