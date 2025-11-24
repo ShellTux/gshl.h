@@ -1,6 +1,7 @@
 TARGETS = \
 					$(TARGET_DIR)/gshl-test \
 					$(TARGET_DIR)/examples/dynamic-array \
+					$(TARGET_DIR)/examples/hash \
 					$(TARGET_DIR)/examples/hash-table \
 					$(TARGET_DIR)/examples/macros \
 					$(TARGET_DIR)/examples/print \
@@ -39,6 +40,11 @@ $(TARGET_DIR)/examples/print: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 
 DEPS := examples/dynamic-array.c
 $(TARGET_DIR)/examples/dynamic-array: $(DEPS:%.c=$(BUILD_DIR)/%.o)
+	@mkdir --parents $(shell dirname $@)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+DEPS := examples/hash.c
+$(TARGET_DIR)/examples/hash: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 	@mkdir --parents $(shell dirname $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
