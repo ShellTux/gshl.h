@@ -1,0 +1,4 @@
+#ifndef INCLUDE_HASH_MOD_H_
+#define INCLUDE_HASH_MOD_H_
+
+#endif // INCLUDE_HASH_MOD_H_
