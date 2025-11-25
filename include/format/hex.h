@@ -2,11 +2,11 @@
 #define INCLUDE_FORMAT_HEX_H_
 
 #include "format/mod.h"
-#include "types/mod.h"
 
 /// {{{ Functions
 
-usize write_hex(char *buf, GSHL_Template *template);
+GSHL_FormatSpecifierWriteFunction GSHL_write_hex32;
+GSHL_FormatSpecifierWriteFunction GSHL_write_hex64;
 
 /// }}}
 

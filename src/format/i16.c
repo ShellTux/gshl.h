@@ -1,43 +1,50 @@
 #include "format/i16.h"
-#include "format/isize.h"
 
+#include "format/isize.h"
 #include "macros/mod.h"
 #include "string/mod.h"
-#include "types/mod.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
-usize write_i16(char *buf, GSHL_Template *t_mut)
+usize GSHL_write_i16(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
-    const GSHL_Template *const t = t_mut;
+    GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_I16);
+    GSHL_ASSERT(fs->write == GSHL_write_i16);
 
-    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_I16);
-
-    return write_isize(buf, t_mut);
+    return GSHL_write_isize(string, fs);
 }
 
 #ifdef GSHL_TESTS
-
 #    include "test/mod.h"
 
 GSHL_TEST(write_i16)
 {
-#    define TEST_WRITE_I16(NUMBER, EXPECTED_STRING, ...)                       \
-        {                                                                      \
-            char buffer[256] = {0};                                            \
-            struct GSHL_Template template = {                                  \
-                .kind = GSHL_TEMPLATE_I16,                                     \
-                .i16 = NUMBER,                                                 \
-                .opts.i16 = {__VA_ARGS__},                                     \
-            };                                                                 \
-            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
-            GSHL_TEST_EQUAL(write_i16(NULL, &template), count);                \
-            GSHL_TEST_EQUAL(write_i16(buffer, &template), count);              \
-            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
-        }
 
-    TEST_WRITE_I16(32767, "32767");
-#    undef TEST_WRITE_isize
+#    define TEST_WRITE_i16(EXPRESSION, EXPECTED)                               \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_I16,                             \
+                .write = GSHL_write_i16,                                       \
+                .value.i16 = (EXPRESSION),                                     \
+            };                                                                 \
+                                                                               \
+            const usize count = GSHL_write_i16(&string, &fs);                  \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
+
+    TEST_WRITE_i16(42, "42");
+    TEST_WRITE_i16(0, "0");
+    TEST_WRITE_i16(2942, "2942");
+    TEST_WRITE_i16(-2942, "-2942");
+    TEST_WRITE_i16(~0, "-1");
+
+#    undef TEST_WRITE_i16
 }
 
 #endif

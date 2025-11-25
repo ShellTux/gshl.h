@@ -1,3 +1,4 @@
+// gshl-priority: 85
 #ifndef INCLUDE_HASH_TABLE_MOD_H_
 #define INCLUDE_HASH_TABLE_MOD_H_
 
@@ -36,7 +37,7 @@
     GSHL_HashTable_delete_wrapper(HT, (GSHL_HashTableKey){KEY})
 
 #define GSHL_HashTable_print(HT, KEY_FORMAT, KEY_NAME, VALUE_FORMAT,           \
-                             VALUE_NAME)                                       \
+                             VALUE_NAME, ...)                                  \
     do {                                                                       \
         printf("%s = HashTable [%s][%s] {\n", #HT, (HT).key_type,              \
                (HT).value_type);                                               \
@@ -53,6 +54,7 @@
                        current == (HT).table[GSHL_HashTable_index] ? ""        \
                                                                    : " -> ",   \
                        current->value.VALUE_NAME);                             \
+                printf(" " __VA_ARGS__);                                       \
             }                                                                  \
             printf(" (Bucket: %lu)\n", GSHL_HashTable_index);                  \
         }                                                                      \

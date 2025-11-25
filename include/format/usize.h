@@ -2,11 +2,10 @@
 #define INCLUDE_FORMAT_USIZE_H_
 
 #include "format/mod.h"
-#include "types/mod.h"
 
 /// {{{ Functions
 
-usize write_usize(char *buf, GSHL_Template *template);
+GSHL_FormatSpecifierWriteFunction GSHL_write_usize;
 
 /// }}}
 

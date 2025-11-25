@@ -1,73 +1,111 @@
 #include "format/hex.h"
+#include "format/pointer.h"
+
+#include "array/mod.h"
+#include "format/usize.h"
 #include "macros/mod.h"
 #include "string/mod.h"
 
 #include <assert.h>
-#include <string.h>
+#include <stdlib.h>
 
-usize write_hex(char *buf, GSHL_Template *t_mut)
+usize GSHL_write_hex32(GSHL_FormatString *string,
+                       const GSHL_FormatSpecifier *fs)
 {
-    const GSHL_Template *const t = t_mut;
+    GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_HEX32);
+    GSHL_ASSERT(fs->write == GSHL_write_hex32);
 
-    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_HEXADECIMAL);
+    GSHL_FormatSpecifier fs_copy = *fs;
+    fs_copy.value.hex64 = fs->value.hex32;
 
-    if (buf == NULL) {
-        t_mut->count = 0;
+    return GSHL_write_hex64(string, &fs_copy);
+}
 
-        usize remaining = t->hex;
-        do {
-            remaining >>= 4;
-            t_mut->count += 1;
-        } while (remaining != 0);
-
-        return t->count;
-    };
+usize GSHL_write_hex64(GSHL_FormatString *string,
+                       const GSHL_FormatSpecifier *fs)
+{
+    GSHL_ASSERT(fs->kind &
+                (GSHL_FORMAT_SPECIFIER_HEX32 | GSHL_FORMAT_SPECIFIER_HEX64 |
+                 GSHL_FORMAT_SPECIFIER_POINTER));
+    GSHL_ASSERT(fs->write == GSHL_write_hex32 ||
+                fs->write == GSHL_write_hex64 ||
+                fs->write == GSHL_write_pointer);
 
     static const char conversion[][17] = {
         [false] = "0123456789abcdef",
         [true] = "0123456789ABCDEF",
     };
 
-    usize remaining = t->hex;
+    const char *convert =
+        conversion[fs->opts.hex64.uppercase % GSHL_ARRAY_LEN(conversion)];
+
     usize count = 0;
-    for (isize i = t->count - 1; i >= 0; --i) {
-        buf[i] = conversion[t->opts.hex.uppercase][remaining % 16];
-        remaining >>= 4;
+    hex64 rem = fs->value.hex64;
+    do {
+        if (string != NULL) {
+            GSHL_DArray_append(string, convert[rem % 16]);
+        }
+
+        rem >>= 4;
         count += 1;
+    } while (rem != 0);
+
+    if (string != NULL) {
+        GSHL_string_reverse(&string->items[string->count - count],
+                            &string->items[string->count]);
     }
 
-    GSHL_ASSERT(count == t->count);
-
-    return t->count;
+    return count;
 }
 
 #ifdef GSHL_TESTS
-
 #    include "test/mod.h"
 
-GSHL_TEST(write_hex)
+GSHL_TEST(write_hex32)
 {
-#    define TEST_WRITE_HEX(NUMBER, EXPECTED_STRING, ...)                       \
-        {                                                                      \
-            char buffer[256] = {0};                                            \
-            struct GSHL_Template template = {                                  \
-                .kind = GSHL_TEMPLATE_HEXADECIMAL,                             \
-                .hex = NUMBER,                                                 \
-                .opts.hex = {__VA_ARGS__},                                     \
+
+#    define TEST_WRITE_hex32(EXPRESSION, EXPECTED, ...)                        \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_HEX32,                           \
+                .write = GSHL_write_hex32,                                     \
+                .value.hex32 = (EXPRESSION),                                   \
+                .opts.hex32 = {__VA_ARGS__},                                   \
             };                                                                 \
-            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
-            GSHL_TEST_EQUAL(write_hex(NULL, &template), count);                \
-            GSHL_TEST_EQUAL(write_hex(buffer, &template), count);              \
-            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
-        }
+                                                                               \
+            const hex32 count = GSHL_write_hex32(&string, &fs);                \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
 
-    TEST_WRITE_HEX(0, "0");
-    TEST_WRITE_HEX(0x0123456789abcde, "123456789abcde");
-    TEST_WRITE_HEX(0x0123456789abcde, "123456789ABCDE", .uppercase = true);
-    TEST_WRITE_HEX(0xabcdef0123456789, "abcdef0123456789", .uppercase = false);
-    TEST_WRITE_HEX(0XABCDEF0123456789, "ABCDEF0123456789", .uppercase = true);
+#    define TEST_WRITE_hex64(EXPRESSION, EXPECTED, ...)                        \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_HEX64,                           \
+                .write = GSHL_write_hex64,                                     \
+                .value.hex64 = (EXPRESSION),                                   \
+                .opts.hex64 = {__VA_ARGS__},                                   \
+            };                                                                 \
+                                                                               \
+            const hex64 count = GSHL_write_hex64(&string, &fs);                \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
 
-#    undef TEST_WRITE_HEX
+    TEST_WRITE_hex32(0xFF, "ff");
+    TEST_WRITE_hex32(0xFF, "FF", .uppercase = true);
+    TEST_WRITE_hex64(0xFF, "ff");
+    TEST_WRITE_hex64(0xFF, "FF", .uppercase = true);
+
+#    undef TEST_WRITE_hex32
 }
 
 #endif

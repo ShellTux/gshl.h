@@ -1,90 +1,95 @@
 #include "format/usize.h"
 
+#include "format/u16.h"
+#include "format/u32.h"
+#include "format/u64.h"
+#include "format/u8.h"
 #include "macros/mod.h"
 #include "string/mod.h"
-#include "types/mod.h"
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
-usize write_usize(char *buf, GSHL_Template *t_mut)
+usize GSHL_write_usize(GSHL_FormatString *string,
+                       const GSHL_FormatSpecifier *fs)
 {
-    const GSHL_Template *const t = t_mut;
+    GSHL_ASSERT(fs->kind &
+                (GSHL_FORMAT_SPECIFIER_U8 | GSHL_FORMAT_SPECIFIER_U16 |
+                 GSHL_FORMAT_SPECIFIER_U32 | GSHL_FORMAT_SPECIFIER_U64 |
+                 GSHL_FORMAT_SPECIFIER_USIZE));
+    GSHL_ASSERT(fs->write == GSHL_write_u8 || fs->write == GSHL_write_u16 ||
+                fs->write == GSHL_write_u32 || fs->write == GSHL_write_u64 ||
+                fs->write == GSHL_write_usize);
 
-    GSHL_ASSERT(t->kind &
-                (GSHL_TEMPLATE_U8 | GSHL_TEMPLATE_U16 | GSHL_TEMPLATE_U32 |
-                 GSHL_TEMPLATE_U64 | GSHL_TEMPLATE_USIZE));
-
-    usize remaining = t->u8 * !!(t->kind & GSHL_TEMPLATE_U8) +
-                      t->u16 * !!(t->kind & GSHL_TEMPLATE_U16) +
-                      t->u32 * !!(t->kind & GSHL_TEMPLATE_U32) +
-                      t->u64 * !!(t->kind & GSHL_TEMPLATE_U64) +
-                      t->usize * !!(t->kind & GSHL_TEMPLATE_USIZE);
-
-    if (buf == NULL) {
-        t_mut->count = 0;
-
-        do {
-            remaining /= 10;
-            t_mut->count += 1;
-        } while (remaining != 0);
-
-        return t->count;
+    usize rem = 0;
+    switch (fs->kind) {
+    case GSHL_FORMAT_SPECIFIER_U8:
+        rem = fs->value.u8;
+        break;
+    case GSHL_FORMAT_SPECIFIER_U16:
+        rem = fs->value.u16;
+        break;
+    case GSHL_FORMAT_SPECIFIER_U32:
+        rem = fs->value.u32;
+        break;
+    case GSHL_FORMAT_SPECIFIER_U64:
+        rem = fs->value.u64;
+        break;
+    case GSHL_FORMAT_SPECIFIER_USIZE:
+        rem = fs->value.usize;
+        break;
+    default:
+        GSHL_UNREACHABLE("Invalid kind %i", fs->kind);
+        break;
     }
 
-    if (remaining == 0) {
-        buf[0] = '0';
-        return t->count;
+    usize count = 0;
+    do {
+        if (string != NULL) {
+            GSHL_DArray_append(string, '0' + (rem % 10));
+        }
+
+        rem /= 10;
+        count += 1;
+    } while (rem > 0);
+
+    if (string != NULL) {
+        GSHL_string_reverse(&string->items[string->count - count],
+                            &string->items[string->count]);
     }
 
-    for (isize i = t->count - 1; i >= 0 && remaining > 0;
-         --i, remaining /= 10) {
-        buf[i] = '0' + (remaining % 10);
-    }
-
-    GSHL_ASSERT(remaining == 0);
-
-    return t->count;
+    return count;
 }
 
 #ifdef GSHL_TESTS
-
 #    include "test/mod.h"
 
 GSHL_TEST(write_usize)
 {
-#    define TEST_WRITE_USIZE(NUMBER, EXPECTED_STRING, ...)                     \
-        {                                                                      \
-            char buffer[256] = {0};                                            \
-            struct GSHL_Template template = {                                  \
-                .kind = GSHL_TEMPLATE_USIZE,                                   \
-                .usize = NUMBER,                                               \
-                .opts.usize = {__VA_ARGS__},                                   \
-            };                                                                 \
-            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
-            GSHL_TEST_EQUAL(write_usize(NULL, &template), count);              \
-            GSHL_TEST_EQUAL(write_usize(buffer, &template), count);            \
-            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
-        }
 
-    {
-        char buffer[256] = {0};
-        struct GSHL_Template template = {
-            .kind = GSHL_TEMPLATE_USIZE,
-            .usize = 0,
-            .opts.usize = {},
-        };
-        const usize count = GSHL_STACK_STRING_LEN("0");
-        GSHL_TEST_EQUAL(write_usize(NULL, &template), count);
-        GSHL_TEST_EQUAL(write_usize(buffer, &template), count);
-        GSHL_TEST_STR_EQUAL(buffer, "0");
-    }
-    TEST_WRITE_USIZE(0, "0");
-    TEST_WRITE_USIZE(3245, "3245");
-    TEST_WRITE_USIZE(34948239, "34948239");
-    // TEST_WRITE_usize(usize_MAX, 10, "4294967295");
-    // TEST_WRITE_usize(usize_MIN, 1, "0");
+#    define TEST_WRITE_usize(EXPRESSION, EXPECTED)                             \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_USIZE,                           \
+                .write = GSHL_write_usize,                                     \
+                .value.usize = (EXPRESSION),                                   \
+            };                                                                 \
+                                                                               \
+            const usize count = GSHL_write_usize(&string, &fs);                \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
+
+    TEST_WRITE_usize(42, "42");
+    TEST_WRITE_usize(0, "0");
+    TEST_WRITE_usize(294482, "294482");
+    TEST_WRITE_usize(-294482U, "4294672814");
+    TEST_WRITE_usize(~0U, "4294967295");
+    TEST_WRITE_usize(0xFF, "255");
 
 #    undef TEST_WRITE_usize
 }

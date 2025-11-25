@@ -2,11 +2,10 @@
 #define INCLUDE_FORMAT_POINTER_H_
 
 #include "format/mod.h"
-#include "types/mod.h"
 
 /// {{{ Functions
 
-usize write_pointer(char *buf, GSHL_Template *template);
+GSHL_FormatSpecifierWriteFunction GSHL_write_pointer;
 
 /// }}}
 

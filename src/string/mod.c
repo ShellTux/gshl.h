@@ -8,6 +8,20 @@ char *GSHL_string_dup(const char *const source)
     return strcpy(malloc(len + 1), source);
 }
 
+void GSHL_string_reverse(char *start, char *end)
+{
+    end -= 1;
+
+    while (start < end) {
+        char temp = *start;
+        *start = *end;
+        *end = temp;
+
+        start++;
+        end--;
+    }
+}
+
 #ifdef GSHL_TESTS
 #    include "test/mod.h"
 
@@ -25,4 +39,17 @@ GSHL_TEST(string_dup)
         free(s);
     }
 }
+
+GSHL_TEST(string_reverse)
+{
+    {
+        char s1[] = "123456789";
+        char s2[] = "123456789";
+        GSHL_string_reverse(s2, s2 + GSHL_STACK_STRING_LEN(s2));
+        GSHL_TEST_STR_EQUAL(s2, "987654321");
+        GSHL_string_reverse(s2, s2 + GSHL_STACK_STRING_LEN(s2));
+        GSHL_TEST_STR_EQUAL(s1, s2);
+    }
+}
+
 #endif

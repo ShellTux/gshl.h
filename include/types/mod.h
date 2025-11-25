@@ -20,4 +20,11 @@ typedef intmax_t isize;
 typedef float f32;
 typedef double f64;
 
+typedef char *cstring;
+
+typedef void *pointer;
+
+typedef u32 hex32;
+typedef u64 hex64;
+
 #endif // INCLUDE_TYPES_MOD_H_

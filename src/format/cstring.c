@@ -1,23 +1,25 @@
 #include "format/cstring.h"
+
 #include "macros/mod.h"
 #include "string/mod.h"
 
 #include <assert.h>
-#include <string.h>
+#include <stdlib.h>
 
-usize write_cstring(char *buf, GSHL_Template *t_mut)
+usize GSHL_write_cstring(GSHL_FormatString *string,
+                         const GSHL_FormatSpecifier *fs)
 {
-    const GSHL_Template *const t = t_mut;
+    GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_CSTRING);
+    GSHL_ASSERT(fs->write == GSHL_write_cstring);
 
-    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_CSTRING);
-
-    if (buf == NULL) {
-        return t_mut->count = strlen(t->cstring);
+    usize count = 0;
+    for (char *c = fs->value.cstring; *c != '\0'; c += 1, count += 1) {
+        if (string != NULL) {
+            GSHL_DArray_append(string, *c);
+        }
     }
 
-    memcpy(buf, t->cstring, t->count);
-
-    return t->count;
+    return count;
 }
 
 #ifdef GSHL_TESTS
@@ -25,25 +27,29 @@ usize write_cstring(char *buf, GSHL_Template *t_mut)
 
 GSHL_TEST(write_cstring)
 {
-#    define TEST_WRITE_CSTRING(CSTRING, EXPECTED_STRING, ...)                  \
-        {                                                                      \
-            char buffer[256] = {0};                                            \
-            struct GSHL_Template template = {                                  \
-                .kind = GSHL_TEMPLATE_CSTRING,                                 \
-                .cstring = CSTRING,                                            \
-                .opts.cstring = {__VA_ARGS__},                                 \
+
+#    define TEST_WRITE_cstring(EXPRESSION, EXPECTED)                           \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_CSTRING,                         \
+                .write = GSHL_write_cstring,                                   \
+                .value.cstring = (EXPRESSION),                                 \
             };                                                                 \
-            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
-            GSHL_TEST_EQUAL(write_cstring(NULL, &template), count);            \
-            GSHL_TEST_EQUAL(write_cstring(buffer, &template), count);          \
-            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
-        }
+                                                                               \
+            const usize count = GSHL_write_cstring(&string, &fs);              \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
 
-    TEST_WRITE_CSTRING("", "");
-    TEST_WRITE_CSTRING("abc", "abc");
-    TEST_WRITE_CSTRING("   4l45krjslkac  \n", "   4l45krjslkac  \n");
+    TEST_WRITE_cstring("", "");
+    TEST_WRITE_cstring("Hello world!", "Hello world!");
+    TEST_WRITE_cstring("foo bar baz", "foo bar baz");
 
-#    undef TEST_WRITE_CSTRING
+#    undef TEST_WRITE_cstring
 }
 
 #endif

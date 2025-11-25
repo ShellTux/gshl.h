@@ -1,13 +1,12 @@
-#ifndef INCLUDE_FORMAT_CHAR_H_
-#define INCLUDE_FORMAT_CHAR_H_
+#ifndef INCLUDE_FORMAT_CHARACTER_H_
+#define INCLUDE_FORMAT_CHARACTER_H_
 
 #include "format/mod.h"
-#include "types/mod.h"
 
 /// {{{ Functions
 
-usize write_character(char *buf, GSHL_Template *template);
+GSHL_FormatSpecifierWriteFunction GSHL_write_char;
 
 /// }}}
 
-#endif // INCLUDE_FORMAT_CHAR_H_
+#endif // INCLUDE_FORMAT_CHARACTER_H_

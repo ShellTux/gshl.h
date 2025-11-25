@@ -2,11 +2,10 @@
 #define INCLUDE_FORMAT_U32_H_
 
 #include "format/mod.h"
-#include "types/mod.h"
 
 /// {{{ Functions
 
-usize write_u32(char *buf, GSHL_Template *template);
+GSHL_FormatSpecifierWriteFunction GSHL_write_u32;
 
 /// }}}
 

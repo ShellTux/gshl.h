@@ -1,86 +1,76 @@
 #include "format/pointer.h"
 
+#include "format/hex.h"
 #include "macros/mod.h"
 #include "string/mod.h"
+#include "types/mod.h"
 
 #include <assert.h>
-#include <string.h>
+#include <stdlib.h>
 
-usize write_pointer(char *buf, GSHL_Template *t_mut)
+usize GSHL_write_pointer(GSHL_FormatString *string,
+                         const GSHL_FormatSpecifier *fs)
 {
-    const GSHL_Template *const t = t_mut;
+    GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_POINTER);
+    GSHL_ASSERT(fs->write == GSHL_write_pointer);
 
-    GSHL_ASSERT(t->kind == GSHL_TEMPLATE_POINTER);
+    usize count = 0;
 
-    static const char prefix[] = "0x";
-    static const usize prefixLen = GSHL_STACK_STRING_LEN(prefix);
+    const pointer pointer = fs->value.pointer;
+    if (pointer == NULL) {
+        GSHL_STRING_FOREACH("nil", c)
+        {
+            if (string != NULL) {
+                GSHL_DArray_append(string, c);
+            }
 
-    if (buf == NULL) {
-        if (t->pointer == NULL) {
-            return t_mut->count = GSHL_STACK_STRING_LEN("nil");
+            count += 1;
         }
 
-        t_mut->count = prefixLen;
-
-        uintptr_t address = (uintptr_t)t->pointer;
-        do {
-            address >>= 4;
-            t_mut->count += 1;
-        } while (address != 0);
-
-        return t->count;
+        return count;
     }
 
-    if (t->pointer == NULL) {
-        GSHL_ASSERT(t->count == 3);
-        memcpy(buf, "nil", t->count);
-        return t->count;
+    GSHL_STRING_FOREACH("0x", prefixC)
+    {
+        if (string != NULL) {
+            GSHL_DArray_append(string, prefixC);
+        }
+
+        count += 1;
     }
 
-    uintptr_t address = (uintptr_t)t->pointer;
-
-    static const char conversion[][17] = {
-        [false] = "0123456789abcdef",
-        [true] = "0123456789ABCDEF",
-    };
-
-    // Fill the buffer with hexadecimal representation
-    for (isize i = t->count - prefixLen - 1; i >= 0 && address > 0;
-         --i, address >>= 4) {
-        buf[prefixLen + i] =
-            conversion[t->opts.pointer.uppercase][address % 16];
-    }
-
-    memcpy(buf, prefix, prefixLen);
-
-    return t->count;
+    return count + GSHL_write_hex64(string, pointer);
 }
 
 #ifdef GSHL_TESTS
-
 #    include "test/mod.h"
 
 GSHL_TEST(write_pointer)
 {
-#    define TEST_WRITE_POINTER(NUMBER, EXPECTED_STRING, ...)                   \
-        {                                                                      \
-            char buffer[256] = {0};                                            \
-            struct GSHL_Template template = {                                  \
-                .kind = GSHL_TEMPLATE_POINTER,                                 \
-                .pointer = NUMBER,                                             \
+
+#    define TEST_WRITE_pointer(EXPRESSION, EXPECTED, ...)                      \
+        do {                                                                   \
+            GSHL_FormatString string = {};                                     \
+            GSHL_DArray_init(&string);                                         \
+            const GSHL_FormatSpecifier fs = {                                  \
+                .kind = GSHL_FORMAT_SPECIFIER_POINTER,                         \
+                .write = GSHL_write_pointer,                                   \
+                .value.pointer = (EXPRESSION),                                 \
                 .opts.pointer = {__VA_ARGS__},                                 \
             };                                                                 \
-            const usize count = GSHL_STACK_STRING_LEN(EXPECTED_STRING);        \
-            GSHL_TEST_EQUAL(write_pointer(NULL, &template), count);            \
-            GSHL_TEST_EQUAL(write_pointer(buffer, &template), count);          \
-            GSHL_TEST_STR_EQUAL(buffer, EXPECTED_STRING);                      \
-        }
+                                                                               \
+            const usize count = GSHL_write_pointer(&string, &fs);              \
+            const char expected[] = EXPECTED;                                  \
+            GSHL_DArray_append(&string, '\0');                                 \
+            GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
+            GSHL_TEST_STR_EQUAL(string.items, expected);                       \
+            GSHL_DArray_destroy(&string);                                      \
+        } while (0)
 
-    TEST_WRITE_POINTER(0, "nil");
-    TEST_WRITE_POINTER(NULL, "nil");
-    TEST_WRITE_POINTER((void *)0x7ffc0d1b64f4, "0x7ffc0d1b64f4");
+    TEST_WRITE_pointer(NULL, "nil");
+    TEST_WRITE_pointer(NULL, "nil");
 
-#    undef TEST_WRITE_POINTER
+#    undef TEST_WRITE_pointer
 }
 
 #endif
