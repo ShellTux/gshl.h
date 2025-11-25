@@ -5,6 +5,7 @@ TARGETS = \
 					$(TARGET_DIR)/examples/hash-table \
 					$(TARGET_DIR)/examples/macros \
 					$(TARGET_DIR)/examples/print \
+					$(TARGET_DIR)/examples/string \
 					$(TARGET_DIR)/libgshl.so \
 					$(TARGET_DIR)/libgshl.a
 
@@ -50,6 +51,11 @@ $(TARGET_DIR)/examples/hash: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 
 DEPS := examples/hash-table.c
 $(TARGET_DIR)/examples/hash-table: $(DEPS:%.c=$(BUILD_DIR)/%.o)
+	@mkdir --parents $(shell dirname $@)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+DEPS := examples/string.c
+$(TARGET_DIR)/examples/string: $(DEPS:%.c=$(BUILD_DIR)/%.o)
 	@mkdir --parents $(shell dirname $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
