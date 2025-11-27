@@ -27,4 +27,6 @@ typedef void *pointer;
 typedef u32 hex32;
 typedef u64 hex64;
 
+typedef int Fd;
+
 #endif // INCLUDE_TYPES_MOD_H_
