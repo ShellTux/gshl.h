@@ -192,3 +192,4 @@ $RECYCLE.BIN/
 /.pre-commit-config.yaml
 /target
 /perf.data*
+*.log

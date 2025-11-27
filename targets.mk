@@ -6,6 +6,7 @@ TARGETS = \
 					$(TARGET_DIR)/examples/macros \
 					$(TARGET_DIR)/examples/print \
 					$(TARGET_DIR)/examples/string \
+					$(TARGET_DIR)/examples/log \
 					$(TARGET_DIR)/libgshl.so \
 					$(TARGET_DIR)/libgshl.a
 
