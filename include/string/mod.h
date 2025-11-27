@@ -12,8 +12,7 @@
          keep = !keep, index++)                                                \
         for (const char VARNAME = (STRING)[index],                             \
                         *VARNAME##P = &(STRING)[index];                        \
-             keep;                                                             \
-             keep = !keep && *VARNAME##P != '\0', exit = VARNAME == '\0')
+             keep && !(exit = VARNAME == '\0'); keep = !keep && *VARNAME##P)
 
 /// }}}
 
