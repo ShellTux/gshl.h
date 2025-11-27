@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 usize GSHL_write_pointer(GSHL_FormatString *string,
                          const GSHL_FormatSpecifier *fs)
@@ -14,32 +15,18 @@ usize GSHL_write_pointer(GSHL_FormatString *string,
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_POINTER);
     GSHL_ASSERT(fs->write == GSHL_write_pointer);
 
-    usize count = 0;
+    const usize start_count = string->count;
 
     const pointer pointer = fs->value.pointer;
     if (pointer == NULL) {
-        GSHL_STRING_FOREACH("nil", c)
-        {
-            if (string != NULL) {
-                GSHL_DArray_append(string, c);
-            }
-
-            count += 1;
-        }
-
-        return count;
+        GSHL_DArray_extendn(string, "nil", GSHL_STACK_STRING_LEN("nil"));
+        return string->count - start_count;
     }
 
-    GSHL_STRING_FOREACH("0x", prefixC)
-    {
-        if (string != NULL) {
-            GSHL_DArray_append(string, prefixC);
-        }
+    GSHL_DArray_extendn(string, "0x", GSHL_STACK_STRING_LEN("0x"));
+    GSHL_write_hex64(string, fs);
 
-        count += 1;
-    }
-
-    return count + GSHL_write_hex64(string, pointer);
+    return string->count - start_count;
 }
 
 #ifdef GSHL_TESTS
@@ -68,7 +55,9 @@ GSHL_TEST(write_pointer)
         } while (0)
 
     TEST_WRITE_pointer(NULL, "nil");
-    TEST_WRITE_pointer(NULL, "nil");
+    TEST_WRITE_pointer((void *)0x7ffef80057a4, "0x7ffef80057a4");
+    TEST_WRITE_pointer((void *)0x7ffef80057a4, "0x7FFEF80057A4",
+                       .uppercase = true);
 
 #    undef TEST_WRITE_pointer
 }

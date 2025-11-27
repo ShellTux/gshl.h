@@ -12,14 +12,11 @@ usize GSHL_write_cstring(GSHL_FormatString *string,
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_CSTRING);
     GSHL_ASSERT(fs->write == GSHL_write_cstring);
 
-    usize count = 0;
-    for (char *c = fs->value.cstring; *c != '\0'; c += 1, count += 1) {
-        if (string != NULL) {
-            GSHL_DArray_append(string, *c);
-        }
-    }
+    const usize start_count = string->count;
 
-    return count;
+    GSHL_STRING_FOREACH(fs->value.cstring, c) { GSHL_DArray_append(string, c); }
+
+    return string->count - start_count;
 }
 
 #ifdef GSHL_TESTS

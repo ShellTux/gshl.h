@@ -102,4 +102,5 @@ do
 
   printf '\033[32m%s\033[0m %i %s\n' ✓ "$priority" "$src"
 done
+echo '#undef GSHL_IMPLEMENTATION' | tee --append "$single_header" >/dev/null
 echo '#endif // GSHL_IMPLEMENTATION' | tee --append "$single_header" >/dev/null

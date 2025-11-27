@@ -46,6 +46,34 @@
         (DARRAY)->items[(DARRAY)->count++] = ITEM;                             \
     } while (0)
 
+#define GSHL_DArray_extend(DARRAY, ITEMS, ...)                                 \
+    GSHL_DArray_extendn(DARRAY, ITEMS,                                         \
+                        sizeof(ITEMS) / sizeof((DARRAY)->items[0]))
+
+#define GSHL_DArray_extendn(DARRAY, ITEMS, ITEMS_N)                            \
+    do {                                                                       \
+        if ((DARRAY)->items == NULL) {                                         \
+            (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
+            (DARRAY)->items =                                                  \
+                calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
+            GSHL_ASSERT((DARRAY)->items != NULL);                              \
+        }                                                                      \
+                                                                               \
+        if ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {                \
+            while ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {         \
+                (DARRAY)->capacity *= 2;                                       \
+            }                                                                  \
+            (DARRAY)->items =                                                  \
+                realloc((DARRAY)->items,                                       \
+                        (DARRAY)->capacity * sizeof(*(DARRAY)->items));        \
+            assert((DARRAY)->items != NULL);                                   \
+        }                                                                      \
+                                                                               \
+        memcpy(&(DARRAY)->items[(DARRAY)->count], (ITEMS),                     \
+               (ITEMS_N) * sizeof((ITEMS)[0]));                                \
+        (DARRAY)->count += ITEMS_N;                                            \
+    } while (0)
+
 #define GSHL_DArray_insert(DARRAY, INDEX, ITEM)                                \
     do {                                                                       \
         assert(0 <= INDEX && INDEX <= (DARRAY)->count);                        \

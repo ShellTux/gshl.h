@@ -334,8 +334,10 @@ bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs)
         const char *const end = specifier + strlen(specifier);
         const usize hash = GSHL_hash_format_specifier(start, end, NULL);
         if (GSHL_HashTable_search(&GSHL_format_ht, .usize = hash) != NULL) {
+#ifdef GSHL_DEBUG
             GSHL_dprintln(STDERR_FILENO,
                           "Format Specifier already registered: %s", specifier);
+#endif
             continue;
         }
 
@@ -413,8 +415,8 @@ GSHL_TEST(format_wrapper)
     // TEST_FORMAT_WRAPPER("Octal 64 = 100", "Octal %d = %o", 64, 64);
 
     // Test pointer formatting (simulated with address output)
-    int var = 42;
-    // TEST_FORMAT_WRAPPER("Address of variable: %p", (void *)&var);
+    TEST_FORMAT_WRAPPER("Address of variable: 0x7ffef80057a4",
+                        "Address of variable: %p", (void *)0x7ffef80057a4);
 
     // Test printing size_t
     usize size = 100;

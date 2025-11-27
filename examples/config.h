@@ -1,0 +1,1 @@
+#define GSHL_STRIP_PREFIX

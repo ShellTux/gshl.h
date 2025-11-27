@@ -8,12 +8,12 @@
 
 /// {{{ Macros
 
-#define GSHL_LOGS                                                              \
-    /* LOG(ENUM, BIT_SHIFT, FORMAT, ...) */                                    \
-    LOG(DEBUG, 0, GSHL_FG_GREEN("%s"), "DEBUG", "debug")                       \
-    LOG(INFO, 1, GSHL_FG_CYAN("%s"), "INFO", "info")                           \
-    LOG(WARNING, 2, GSHL_FG_YELLOW("%s"), "WARNING", "warning")                \
-    LOG(ERROR, 3, GSHL_FG_RED("%s"), "ERROR", "error")
+#define GSHL_LOG_VERBOSITY_LEVELS                                              \
+    /* VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...) */                              \
+    VERBOSITY(DEBUG, 0, GSHL_FG_GREEN("%s"), "DEBUG", "debug")                 \
+    VERBOSITY(INFO, 1, GSHL_FG_CYAN("%s"), "INFO", "info")                     \
+    VERBOSITY(WARNING, 2, GSHL_FG_YELLOW("%s"), "WARNING", "warning")          \
+    VERBOSITY(ERROR, 3, GSHL_FG_RED("%s"), "ERROR", "error")
 
 #define GSHL_log(KIND, ...)                                                    \
     GSHL_log_wrapper(KIND,                                                     \
@@ -33,14 +33,15 @@
 
 typedef enum GSHL_LogKind {
     GSHL_LOG_NONE = 0,
-#define LOG(ENUM, BIT_SHIFT, FORMAT, ...) GSHL_LOG_##ENUM = 1U << BIT_SHIFT,
-    GSHL_LOGS
-#undef LOG
+#define VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...)                                \
+    GSHL_LOG_##ENUM = 1U << BIT_SHIFT,
+    GSHL_LOG_VERBOSITY_LEVELS
+#undef VERBOSITY
 
         GSHL_LOG_ALL = 0
-#define LOG(ENUM, BIT_SHIFT, FORMAT, ...) | GSHL_LOG_##ENUM
-    GSHL_LOGS
-#undef LOG
+#define VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...) | GSHL_LOG_##ENUM
+    GSHL_LOG_VERBOSITY_LEVELS
+#undef VERBOSITY
     ,
 } GSHL_LogKind;
 
@@ -83,6 +84,10 @@ void GSHL_log_read_env(void);
 #    define log_init GSHL_log_init
 #    define log_get_config GSHL_log_get_config
 #    define log_read_env GSHL_log_read_env
+#    define VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...)                            \
+        static const GSHL_LogKind ENUM = GSHL_LOG_##ENUM;
+GSHL_LOG_VERBOSITY_LEVELS
+#    undef VERBOSITY
 #endif
 
 #endif // INCLUDE_LOG_MOD_H_

@@ -1,12 +1,13 @@
 TARGETS = \
 					$(TARGET_DIR)/gshl-test \
+					$(TARGET_DIR)/examples/config \
 					$(TARGET_DIR)/examples/dynamic-array \
 					$(TARGET_DIR)/examples/hash \
 					$(TARGET_DIR)/examples/hash-table \
+					$(TARGET_DIR)/examples/log \
 					$(TARGET_DIR)/examples/macros \
 					$(TARGET_DIR)/examples/print \
 					$(TARGET_DIR)/examples/string \
-					$(TARGET_DIR)/examples/log \
 					$(TARGET_DIR)/libgshl.so \
 					$(TARGET_DIR)/libgshl.a
 

@@ -1,5 +1,7 @@
 #include "dynamic_array/mod.h"
 
+#include "array/mod.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
@@ -72,6 +74,30 @@ GSHL_TEST(da)
     GSHL_TEST_EQUAL(da.items, NULL);
     GSHL_TEST_EQUAL(da.capacity, 0);
     GSHL_TEST_EQUAL(da.count, 0);
+
+    const int elements[] = {1, 2, 3};
+    GSHL_DArray_extend(&da, elements);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.count, GSHL_ARRAY_LEN(elements));
+    GSHL_TEST_EQUAL(da.items[0], 1);
+    GSHL_TEST_EQUAL(da.items[1], 2);
+    GSHL_TEST_EQUAL(da.items[2], 3);
+
+    const int elements2[] = {-1, -2, -3};
+    GSHL_DArray_extend(&da, elements2);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.count,
+                    GSHL_ARRAY_LEN(elements) + GSHL_ARRAY_LEN(elements2));
+    GSHL_TEST_EQUAL(da.items[0], 1);
+    GSHL_TEST_EQUAL(da.items[1], 2);
+    GSHL_TEST_EQUAL(da.items[2], 3);
+    GSHL_TEST_EQUAL(da.items[3], -1);
+    GSHL_TEST_EQUAL(da.items[4], -2);
+    GSHL_TEST_EQUAL(da.items[5], -3);
+
+    GSHL_DArray_destroy(&da);
 }
 
 #endif

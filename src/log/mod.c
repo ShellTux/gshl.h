@@ -44,12 +44,12 @@ usize write_enum_LogKind(struct GSHL_FormatString *string,
         }
 
         switch (enabled_log) {
-#define LOG(ENUM, BIT_SHIFT, FORMAT, ...)                                      \
+#define VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...)                                \
     case GSHL_LOG_##ENUM: {                                                    \
         count += GSHL_format_write(string, FORMAT, #ENUM);                     \
     } break;
-            GSHL_LOGS
-#undef LOG
+            GSHL_LOG_VERBOSITY_LEVELS
+#undef VERBOSITY
         default:
             break;
         }
@@ -145,7 +145,7 @@ usize GSHL_log_wrapper(const GSHL_LogKind kind, const GSHL_LogOpts opts,
         return 0;
     }
 
-    if (log_config.fd <= 0 || log_config.file_fd <= 0) {
+    if (log_config.fd <= 0) {
         GSHL_dprintln(STDERR_FILENO, "log_config.fd = %i", log_config.fd);
         GSHL_dprintln(STDERR_FILENO, "log_config.file_fd = %i",
                       log_config.file_fd);
@@ -207,10 +207,10 @@ void GSHL_log_read_env(void)
         char *values[2];
         GSHL_LogKind kind;
     } conversions[] = {
-#define LOG(ENUM, BIT_SHIFT, FORMAT, ...)                                      \
+#define VERBOSITY(ENUM, BIT_SHIFT, FORMAT, ...)                                \
     {.values = {__VA_ARGS__}, .kind = GSHL_LOG_##ENUM},
-        GSHL_LOGS
-#undef LOG
+        GSHL_LOG_VERBOSITY_LEVELS
+#undef VERBOSITY
 
     };
 
