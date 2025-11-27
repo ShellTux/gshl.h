@@ -1,6 +1,7 @@
 #include "log/mod.h"
 
 #include "ansi/colors.h"
+#include "array/mod.h"
 #include "format/mod.h"
 #include "macros/mod.h"
 #include "math/mod.h"
@@ -14,7 +15,7 @@
 
 static GSHL_LogConfig log_config = {
     .fd = STDERR_FILENO,
-    .mask = GSHL_LOG_ERROR | GSHL_LOG_WARNING,
+    .mask = GSHL_LOG_ALL,
     .file_fd = 0,
     .print =
         {
@@ -36,23 +37,19 @@ usize write_enum_LogKind(struct GSHL_FormatString *string,
 
     usize count = 0;
     for (GSHL_LogKind mask = 1U << 0; log > 0; log &= ~mask, mask <<= 1) {
-        if (count > 0) {
+        const GSHL_LogKind enabled_log = log & mask;
+
+        if (count > 0 && enabled_log) {
             count += GSHL_format_write(string, " | ");
         }
 
-        switch ((GSHL_LogKind)(log & mask)) {
-        case GSHL_LOG_DEBUG:
-            count += GSHL_format_write(string, GSHL_FG_GREEN("DEBUG"));
-            break;
-        case GSHL_LOG_INFO:
-            count += GSHL_format_write(string, GSHL_FG_CYAN("INFO"));
-            break;
-        case GSHL_LOG_WARNING:
-            count += GSHL_format_write(string, GSHL_FG_YELLOW("WARNING"));
-            break;
-        case GSHL_LOG_ERROR:
-            count += GSHL_format_write(string, GSHL_FG_RED("ERROR"));
-            break;
+        switch (enabled_log) {
+#define LOG(ENUM, BIT_SHIFT, FORMAT, ...)                                      \
+    case GSHL_LOG_##ENUM: {                                                    \
+        count += GSHL_format_write(string, FORMAT, #ENUM);                     \
+    } break;
+            GSHL_LOGS
+#undef LOG
         default:
             break;
         }
@@ -95,6 +92,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
 
     if (config.mask != null_config.mask) {
         log_config.mask = config.mask;
+        GSHL_log_read_env();
     }
 
     if (config.file_fd != null_config.file_fd) {
@@ -201,4 +199,36 @@ usize GSHL_log_wrapper(const GSHL_LogKind kind, const GSHL_LogOpts opts,
     GSHL_DArray_destroy(&string);
 
     return count;
+}
+
+void GSHL_log_read_env(void)
+{
+    static const struct GSHL_Env2Log {
+        char *values[2];
+        GSHL_LogKind kind;
+    } conversions[] = {
+#define LOG(ENUM, BIT_SHIFT, FORMAT, ...)                                      \
+    {.values = {__VA_ARGS__}, .kind = GSHL_LOG_##ENUM},
+        GSHL_LOGS
+#undef LOG
+
+    };
+
+    const char *const verbosity = getenv("GSHL_LOG");
+    if (verbosity == NULL) {
+        return;
+    }
+
+    log_config.mask = 0;
+    GSHL_ARRAY_FOREACH(conversions, struct GSHL_Env2Log env2log)
+    {
+        GSHL_ARRAY_FOREACH(env2log.values, char *value)
+        {
+            if (strstr(verbosity, value) == NULL) {
+                continue;
+            }
+
+            log_config.mask |= env2log.kind;
+        }
+    }
 }

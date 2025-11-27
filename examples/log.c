@@ -3,10 +3,12 @@
 #include "../gshl.h"
 
 #include <fcntl.h>
-#include <unistd.h>
 
 int main(void)
 {
+    // NOTE: GSHL_LOG environment variable can be used to provide the verbosity
+    // level:
+    // GSHL_LOG=debug,info ./program
     log_init(.fd = STDERR_FILENO, .mask = GSHL_LOG_INFO | GSHL_LOG_WARNING,
              .print.file = true,
              // O_WRONLY: Open for writing only

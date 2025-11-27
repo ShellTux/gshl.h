@@ -8,6 +8,13 @@
 
 /// {{{ Macros
 
+#define GSHL_LOGS                                                              \
+    /* LOG(ENUM, BIT_SHIFT, FORMAT, ...) */                                    \
+    LOG(DEBUG, 0, GSHL_FG_GREEN("%s"), "DEBUG", "debug")                       \
+    LOG(INFO, 1, GSHL_FG_CYAN("%s"), "INFO", "info")                           \
+    LOG(WARNING, 2, GSHL_FG_YELLOW("%s"), "WARNING", "warning")                \
+    LOG(ERROR, 3, GSHL_FG_RED("%s"), "ERROR", "error")
+
 #define GSHL_log(KIND, ...)                                                    \
     GSHL_log_wrapper(KIND,                                                     \
                      (GSHL_LogOpts){                                           \
@@ -26,13 +33,15 @@
 
 typedef enum GSHL_LogKind {
     GSHL_LOG_NONE = 0,
-    GSHL_LOG_DEBUG = 1 << 0,
-    GSHL_LOG_INFO = 1 << 1,
-    GSHL_LOG_WARNING = 1 << 2,
-    GSHL_LOG_ERROR = 1 << 3,
+#define LOG(ENUM, BIT_SHIFT, FORMAT, ...) GSHL_LOG_##ENUM = 1U << BIT_SHIFT,
+    GSHL_LOGS
+#undef LOG
 
-    GSHL_LOG_ALL =
-        GSHL_LOG_DEBUG | GSHL_LOG_INFO | GSHL_LOG_WARNING | GSHL_LOG_ERROR,
+        GSHL_LOG_ALL = 0
+#define LOG(ENUM, BIT_SHIFT, FORMAT, ...) | GSHL_LOG_##ENUM
+    GSHL_LOGS
+#undef LOG
+    ,
 } GSHL_LogKind;
 
 typedef struct GSHL_LogOpts {
@@ -63,6 +72,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config);
 usize GSHL_log_wrapper(const GSHL_LogKind kind, const GSHL_LogOpts opts,
                        const char *const restrict format, ...);
 GSHL_LogConfig GSHL_log_get_config(void);
+void GSHL_log_read_env(void);
 
 /// }}}
 
@@ -72,6 +82,7 @@ GSHL_LogConfig GSHL_log_get_config(void);
 #    define log GSHL_log
 #    define log_init GSHL_log_init
 #    define log_get_config GSHL_log_get_config
+#    define log_read_env GSHL_log_read_env
 #endif
 
 #endif // INCLUDE_LOG_MOD_H_
