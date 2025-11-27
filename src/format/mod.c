@@ -1,5 +1,6 @@
 #include "format/mod.h"
 
+#include "format/bool.h"    // IWYU pragma: keep
 #include "format/char.h"    // IWYU pragma: keep
 #include "format/cstring.h" // IWYU pragma: keep
 #include "format/hex.h"     // IWYU pragma: keep
@@ -42,7 +43,8 @@ static usize GSHL_hash_format_specifier(const char *const start,
         GSHL_ASSERT(start <= end);
 
         // Reasonable length for a format specifier
-        GSHL_ASSERT(end - start < 20);
+        GSHL_ASSERT(end - start < GSHL_FORMAT_SPECIFIER_MAX_LEN &&
+                    ("Exceeded max format specifier length"));
 
         for (const char *c = start; c < end; c += 1) {
             hash ^= *(unsigned char *)c;
@@ -114,7 +116,7 @@ __attribute__((constructor)) static void GSHL_init_ht()
         .kind = GSHL_FORMAT_SPECIFIER_##ENUM,                                  \
         .write = GSHL_write_##TYPE,                                            \
         .va_size = (((sizeof(TYPE) - 1) / 4) + 1) * 4,                         \
-        .specifiers = {#TYPE, __VA_ARGS__},                                    \
+        .specifiers = {__VA_ARGS__},                                           \
     },
         GSHL_FORMAT_SPECIFIERS
 #undef FS
@@ -304,13 +306,10 @@ void GSHL_print_registered_format_specifiers(void)
                     break;
                 }
 
-                GSHL_println(GSHL_FG_CYAN("%s"), specifier);
+                printf(GSHL_FG_CYAN("%s") "\n", specifier);
             }
         }
     }
-    // GSHL_HashTable_print(
-    //     GSHL_format_ht, "%lu", usize, "%p", opaque, "\033[31m\"%s\"\033[0m",
-    //     ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
 #endif
 }
 
@@ -332,7 +331,7 @@ bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs)
         if (GSHL_HashTable_search(&GSHL_format_ht, .usize = hash) != NULL) {
             GSHL_dprintln(STDERR_FILENO,
                           "Format Specifier already registered: %s", specifier);
-            return false;
+            continue;
         }
 
         GSHL_ASSERT(fs.va_size % 4 == 0);
@@ -415,6 +414,13 @@ GSHL_TEST(format_wrapper)
     // Test printing size_t
     usize size = 100;
     TEST_FORMAT_WRAPPER("Size = 100", "Size = %lu", size);
+
+    TEST_FORMAT_WRAPPER("foo bar", "%s {string}", "foo", "bar");
+    TEST_FORMAT_WRAPPER("34 35", "%u {u32}", 34, 35);
+    TEST_FORMAT_WRAPPER("34 35 69", "%lu {u64} {usize}", 34L, 35L, 69L);
+    TEST_FORMAT_WRAPPER("-34 -35 -69", "%i %d {i32}", -34, -35, -69);
+    TEST_FORMAT_WRAPPER("-34 -35 -69", "%li %ld {isize}", -34L, -35L, -69L);
+    TEST_FORMAT_WRAPPER("A B C", "%c {character} {char}", 'A', 'B', 'C');
 
 #    undef TEST_FORMAT_WRAPPER
 }

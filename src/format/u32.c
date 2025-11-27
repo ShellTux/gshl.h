@@ -31,7 +31,7 @@ GSHL_TEST(write_u32)
                 .value.u32 = (EXPRESSION),                                     \
             };                                                                 \
                                                                                \
-            const u32 count = GSHL_write_u32(&string, &fs);                    \
+            const usize count = GSHL_write_u32(&string, &fs);                  \
             GSHL_DArray_append(&string, '\0');                                 \
             GSHL_TEST_EQUAL(count, GSHL_STACK_STRING_LEN(EXPECTED));           \
             GSHL_TEST_STR_EQUAL(string.items, EXPECTED);                       \

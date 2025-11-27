@@ -9,23 +9,28 @@
 #include <stddef.h>
 
 /// {{{ Macros
+
+#define GSHL_FORMAT_SPECIFIER_MAX_LEN 30
+#define GSHL_FORMAT_SPEIFIERS_MAX_PER_TYPE 10
+
 #define GSHL_FORMAT_SPECIFIERS                                                 \
     /* FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...) */                           \
-    FS(0, U8, u8, u8, {})                                                      \
-    FS(1, U16, u16, u16, {})                                                   \
-    FS(2, U32, u32, u32, {}, "%u")                                             \
-    FS(3, U64, u64, u64, {}, "%lu")                                            \
-    FS(4, USIZE, usize, usize, {}, "%lu")                                      \
-    FS(5, I8, i8, i8, {})                                                      \
-    FS(6, I16, i16, i16, {})                                                   \
-    FS(7, I32, i32, i32, {}, "%i", "%d")                                       \
-    FS(8, I64, i64, i64, {}, "%li", "%ld")                                     \
-    FS(9, ISIZE, isize, isize, {}, "%li", "%ld")                               \
-    FS(10, CSTRING, cstring, cstring, {}, "%s", "string")                      \
-    FS(11, CHAR, character, char, {}, "%c", "character")                       \
-    FS(12, POINTER, pointer, pointer, { bool uppercase; }, "%p")               \
-    FS(13, HEX32, hex32, hex32, { bool uppercase; }, "%x", "%X")               \
-    FS(14, HEX64, hex64, hex64, { bool uppercase; }, "%lx", "%lX")
+    FS(0, CSTRING, cstring, cstring, {}, "%s", "string", "cstring")            \
+    FS(1, U8, u8, u8, {})                                                      \
+    FS(2, U16, u16, u16, {})                                                   \
+    FS(3, U32, u32, u32, {}, "%u", "u32")                                      \
+    FS(4, U64, u64, u64, {}, "%lu", "u64")                                     \
+    FS(5, USIZE, usize, usize, {}, "%lu", "usize")                             \
+    FS(6, I8, i8, i8, {})                                                      \
+    FS(7, I16, i16, i16, {})                                                   \
+    FS(8, I32, i32, i32, {}, "%i", "%d", "i32")                                \
+    FS(9, I64, i64, i64, {}, "%li", "%ld", "i64")                              \
+    FS(10, ISIZE, isize, isize, {}, "%li", "%ld", "isize")                     \
+    FS(11, CHAR, character, char, {}, "%c", "char", "character")               \
+    FS(12, POINTER, pointer, pointer, { bool uppercase; }, "%p", "pointer")    \
+    FS(13, HEX32, hex32, hex32, { bool uppercase; }, "%x", "%X", "hex32")      \
+    FS(14, HEX64, hex64, hex64, { bool uppercase; }, "%lx", "%lX", "hex64")    \
+    FS(15, BOOL, boolean, bool, {}, "%B", "boolean", "bool")
 
 /// }}}
 
@@ -65,12 +70,11 @@ struct GSHL_FormatSpecifier {
     GSHL_FormatSpecifierValue value;
     GSHL_FormatSpecifierOpts opts;
     usize va_size;
-    char specifiers[10][30];
+    char specifiers[GSHL_FORMAT_SPEIFIERS_MAX_PER_TYPE]
+                   [GSHL_FORMAT_SPECIFIER_MAX_LEN];
 };
 
 GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers, GSHL_FormatSpecifier);
-
-// } GSHL_FormatSpecifierValue;
 
 /// }}}
 
@@ -79,6 +83,7 @@ GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers, GSHL_FormatSpecifier);
 GSHL_StringView GSHL_format_wrapper(const char *const restrict format, ...);
 GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
                                      va_list args);
+
 usize GSHL_format_write(GSHL_FormatString *string,
                         const char *const restrict format, ...);
 usize GSHL_format_writev(GSHL_FormatString *string,
