@@ -176,16 +176,21 @@ GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
 {
     GSHL_ASSERT(format != NULL);
 
-    static __thread GSHL_FormatString string = {};
-    GSHL_DArray_init(&string);
+    static __thread GSHL_FormatString strings[10] = {};
+    static __thread usize strings_index = 0;
 
-    GSHL_format_writev(&string, format, args);
+    GSHL_FormatString *string = &strings[strings_index];
+    strings_index = (strings_index + 1) % GSHL_ARRAY_LEN(strings);
 
-    GSHL_DArray_append(&string, '\0');
+    GSHL_DArray_init(string);
+
+    GSHL_format_writev(string, format, args);
+
+    GSHL_DArray_append(string, '\0');
 
     return (GSHL_StringView){
-        .start = string.items,
-        .len = string.count - 1,
+        .start = string->items,
+        .len = string->count - 1,
     };
 }
 
