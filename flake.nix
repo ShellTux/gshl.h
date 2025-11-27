@@ -102,6 +102,10 @@
                   pkgs.ripgrep-all
                   pkgs.tokei
                 ]
+                ++ [
+                  pkgs.pandoc
+                  pkgs.pandoc-include
+                ]
                 ++ pre-commit-check.enabledPackages;
 
                 shellHook = ''

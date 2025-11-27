@@ -6,7 +6,7 @@ MODE ?= DEBUG
 INCLUDE_DIR = include
 
 .PHONY: all
-all: gshl.h
+all: gshl.h README.md
 	$(MAKE) --no-print-directory MODE=DEBUG build
 	$(MAKE) --no-print-directory MODE=RELEASE build
 
@@ -81,6 +81,11 @@ $(BUILD_DIR)/%.o: %.cpp
 $(BUILD_DIR)/%.o: %.c
 	@mkdir --parents $(shell dirname $@)
 	$(CC) $(CFLAGS) -MMD -MF $(@:.o=.d) -c -o $@ $<
+
+PANDOC_OPTS += --filter=pandoc-include
+
+%.md: .%.md
+	pandoc $(PANDOC_OPTS) --output=$@ $<
 
 .PHONY: clean
 clean:
