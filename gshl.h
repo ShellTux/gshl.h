@@ -26,6 +26,7 @@
 #else
 #    define GSHL_ASSERT(...) GSHL_UNUSED((__VA_ARGS__))
 #endif
+#define GSHL_unlikely(CONDITION) __glibc_unlikely(CONDITION)
 
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
@@ -34,6 +35,7 @@
 #    define TODO GSHL_TODO
 #    define UNREACHABLE GSHL_UNREACHABLE
 #    define UNUSED GSHL_UNUSED
+#    define unlikely GSHL_unlikely
 #endif
 
 // #endif // INCLUDE_MACROS_MOD_H_
@@ -181,8 +183,8 @@ void GSHL_string_reverse(char *start, char *end);
 
 typedef struct GSHL_HashTableEntry {
     union GSHL_HashTableKey {
-        void *opaque; // Generic pointer to key
-        char *string;
+        const void *opaque; // Generic pointer to key
+        const char *string;
         u8 u8;
         u16 u16;
         u32 u32;
@@ -197,7 +199,7 @@ typedef struct GSHL_HashTableEntry {
     } key;
     union GSHL_HashTableValue {
         void *opaque; // Generic pointer to value
-        char *string;
+        const char *string;
         u8 u8;
         u16 u16;
         u32 u32;
@@ -291,14 +293,14 @@ typedef GSHL_HashTableValue HashTableValue;
 
 #define GSHL_DArray_append(DARRAY, ITEM)                                       \
     do {                                                                       \
-        if ((DARRAY)->items == NULL) {                                         \
+        if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
                 calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
             GSHL_ASSERT((DARRAY)->items != NULL);                              \
         }                                                                      \
                                                                                \
-        if ((DARRAY)->count + 1 > (DARRAY)->capacity) {                        \
+        if (GSHL_unlikely((DARRAY)->count + 1 > (DARRAY)->capacity)) {         \
             (DARRAY)->capacity *= 2;                                           \
             (DARRAY)->items =                                                  \
                 realloc((DARRAY)->items,                                       \
@@ -315,14 +317,14 @@ typedef GSHL_HashTableValue HashTableValue;
 
 #define GSHL_DArray_extendn(DARRAY, ITEMS, ITEMS_N)                            \
     do {                                                                       \
-        if ((DARRAY)->items == NULL) {                                         \
+        if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
                 calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
             GSHL_ASSERT((DARRAY)->items != NULL);                              \
         }                                                                      \
                                                                                \
-        if ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {                \
+        if (GSHL_unlikely((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity)) { \
             while ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {         \
                 (DARRAY)->capacity *= 2;                                       \
             }                                                                  \
@@ -340,7 +342,7 @@ typedef GSHL_HashTableValue HashTableValue;
 #define GSHL_DArray_insert(DARRAY, INDEX, ITEM)                                \
     do {                                                                       \
         assert(0 <= INDEX && INDEX <= (DARRAY)->count);                        \
-        if ((DARRAY)->count >= (DARRAY)->capacity) {                           \
+        if (GSHL_unlikely((DARRAY)->count >= (DARRAY)->capacity)) {            \
             (DARRAY)->capacity *= 2;                                           \
             (DARRAY)->items =                                                  \
                 realloc((DARRAY)->items,                                       \
@@ -680,9 +682,27 @@ GSHLDEF usize GSHL_run_tests(const char *filter);
 // #ifndef INCLUDE_PRINT_MOD_H_
 // #define INCLUDE_PRINT_MOD_H_
 
+// #include "format/mod.h"
 // #include "types/mod.h"
 
+#include <pthread.h>
 #include <stdarg.h>
+
+/// {{{ Types
+
+typedef struct GSHL_GlobalFormatString {
+    struct {
+        GSHL_FormatString string;
+        Fd fd;
+    } buffers[2];
+    pthread_t writer_tid;
+    pthread_mutex_t lock;
+    pthread_cond_t notify;
+    bool init;
+    bool ready;
+} GSHL_GlobalFormatString;
+
+/// }}}
 
 /// {{{ Functions
 
@@ -824,6 +844,7 @@ usize GSHL_log_wrapper(const GSHL_LogKind kind, const GSHL_LogOpts opts,
                        const char *const restrict format, ...);
 GSHL_LogConfig GSHL_log_get_config(void);
 void GSHL_log_read_env(void);
+void GSHL_log_print_config(void);
 
 /// }}}
 
@@ -838,6 +859,7 @@ void GSHL_log_read_env(void);
         static const GSHL_LogKind ENUM = GSHL_LOG_##ENUM;
 GSHL_LOG_VERBOSITY_LEVELS
 #    undef VERBOSITY
+#    define log_print_config GSHL_log_print_config
 #endif
 
 // #endif // INCLUDE_LOG_MOD_H_
@@ -1400,8 +1422,101 @@ GSHL_TEST(string_reverse)
 // #include "string/mod.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <unistd.h>
+
+#ifdef GSHL_GLOBAL_FORMAT_STRING
+// #    include "array/mod.h"
+// #    include "macros/mod.h"
+
+#    include <assert.h>
+#    include <stdlib.h>
+#    include <string.h>
+
+static GSHL_GlobalFormatString global_string = {};
+
+extern int usleep(__useconds_t usec);
+
+static void *GSHL_global_format_string_writer_thread(void *arg)
+{
+    GSHL_UNUSED(arg);
+
+    while (true) {
+        pthread_mutex_lock(&global_string.lock);
+        {
+            while (!global_string.ready) {
+                pthread_cond_wait(&global_string.notify, &global_string.lock);
+            }
+
+            for (usize fd = STDOUT_FILENO;
+                 fd < GSHL_ARRAY_LEN(global_string.buffers); ++fd) {
+                GSHL_FormatString *string = &global_string.buffers[fd].string;
+
+                GSHL_ASSERT(fd > 0);
+
+                if (string->count == 0) {
+                    continue;
+                }
+
+                assert(write(fd, string->items, string->count) > 0);
+                GSHL_DArray_init(string);
+            }
+
+            // Reset the buffer state
+            global_string.ready = false;
+        }
+        pthread_mutex_unlock(&global_string.lock);
+
+        usleep(10 * 1000);
+    }
+
+    return NULL;
+}
+
+static __attribute__((constructor)) void
+GSHL_global_format_string_constructor(void)
+{
+    pthread_mutex_init(&global_string.lock, NULL);
+    pthread_cond_init(&global_string.notify, NULL);
+    pthread_create(&global_string.writer_tid, NULL,
+                   GSHL_global_format_string_writer_thread, NULL);
+
+    pthread_mutex_lock(&global_string.lock);
+    for (usize fd = STDOUT_FILENO; fd < GSHL_ARRAY_LEN(global_string.buffers);
+         ++fd) {
+        GSHL_FormatString *string = &global_string.buffers[fd].string;
+        GSHL_DArray_init(string);
+
+        GSHL_ASSERT(fd > 0);
+    }
+    pthread_mutex_unlock(&global_string.lock);
+}
+
+static __attribute__((destructor)) void
+GSHL_global_format_string_destructor(void)
+{
+    pthread_mutex_lock(&global_string.lock);
+    for (usize fd = STDOUT_FILENO; fd < GSHL_ARRAY_LEN(global_string.buffers);
+         ++fd) {
+        GSHL_FormatString *string = &global_string.buffers[fd].string;
+
+        GSHL_ASSERT(fd > 0);
+
+        if (string->count > 0) {
+            assert(write(fd, string->items, string->count) > 0);
+        }
+
+        GSHL_DArray_destroy(string);
+    }
+    pthread_mutex_unlock(&global_string.lock);
+
+    // Cleanup
+    pthread_cancel(global_string.writer_tid);
+    pthread_join(global_string.writer_tid, NULL);
+
+    pthread_mutex_destroy(&global_string.lock);
+    pthread_cond_destroy(&global_string.notify);
+}
+#endif
 
 usize GSHL_print(const char *const restrict format, ...)
 {
@@ -1447,6 +1562,39 @@ usize GSHL_printv(const char *const restrict format, va_list args)
 usize GSHL_dprintv(const int fd, const char *const restrict format,
                    va_list args)
 {
+    if (fd <= 0) {
+        return 0;
+    }
+
+#ifdef GSHL_GLOBAL_FORMAT_STRING
+    pthread_mutex_lock(&global_string.lock);
+    usize count = 0;
+    for (usize i = STDOUT_FILENO; i < GSHL_ARRAY_LEN(global_string.buffers);
+         ++i) {
+        global_string.buffers[i].fd = i;
+        GSHL_FormatString *string = &global_string.buffers[i].string;
+        const Fd global_fd = global_string.buffers[i].fd;
+
+        GSHL_ASSERT(global_fd > 0);
+
+        if (global_fd != fd) {
+            continue;
+        }
+
+        const usize start_count = string->count;
+        GSHL_format_writev(string, format, args);
+        count = string->count - start_count;
+        global_string.ready = true;                 // Mark buffer as ready
+        pthread_cond_signal(&global_string.notify); // Signal writer thread
+
+        break;
+    }
+    pthread_mutex_unlock(&global_string.lock);
+
+    if (count != 0) {
+        return count;
+    }
+#endif
     const GSHL_StringView view = GSHL_format_wrapperv(format, args);
 
     return write(fd, view.start, view.len);
@@ -1460,6 +1608,41 @@ usize GSHL_printlnv(const char *const restrict format, va_list args)
 usize GSHL_dprintlnv(const int fd, const char *const restrict format,
                      va_list args)
 {
+    if (fd <= 0) {
+        return 0;
+    }
+
+#ifdef GSHL_GLOBAL_FORMAT_STRING
+    pthread_mutex_lock(&global_string.lock);
+    usize count = 0;
+    for (usize i = STDOUT_FILENO; i < GSHL_ARRAY_LEN(global_string.buffers);
+         ++i) {
+        global_string.buffers[i].fd = i;
+        GSHL_FormatString *string = &global_string.buffers[i].string;
+        const Fd global_fd = global_string.buffers[i].fd;
+
+        GSHL_ASSERT(global_fd > 0);
+
+        if (global_fd != fd) {
+            continue;
+        }
+
+        const usize start_count = string->count;
+        GSHL_format_writev(string, format, args);
+        GSHL_format_write(string, "\n");
+        count = string->count - start_count;
+        global_string.ready = true;                 // Mark buffer as ready
+        pthread_cond_signal(&global_string.notify); // Signal writer thread
+
+        break;
+    }
+    pthread_mutex_unlock(&global_string.lock);
+
+    if (count != 0) {
+        return count;
+    }
+#endif
+
     const GSHL_StringView view = GSHL_format_wrapperv(format, args);
 
     return write(fd, view.start, view.len) + write(fd, "\n", 1);
@@ -1649,14 +1832,16 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
         .kind = GSHL_FORMAT_SPECIFIER_U32,
         .va_size = sizeof(GSHL_LogKind),
         .write = write_enum_LogKind,
-        .specifiers = {"enum GSHL_LogKind", "GSHL_LogKind"},
+        .specifiers = {"enum GSHL_LogKind", "GSHL_LogKind", "enum LogKind",
+                       "LogKind"},
     });
 
     GSHL_format_specifier_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_POINTER,
         .va_size = sizeof(GSHL_LogConfig *),
         .write = write_struct_LogConfig,
-        .specifiers = {"struct GSHL_LogConfig", "GSHL_LogConfig"},
+        .specifiers = {"struct GSHL_LogConfig", "GSHL_LogConfig",
+                       "struct LogConfig", "LogConfig"},
     });
 }
 
@@ -1763,6 +1948,8 @@ void GSHL_log_read_env(void)
         }
     }
 }
+
+void GSHL_log_print_config(void) { GSHL_println("{LogConfig}", &log_config); }
 #ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/hash_table/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
@@ -1883,7 +2070,7 @@ static usize GSHL_test_hash_string(const GSHL_HashTableKey key)
 {
     usize hash = 0;
 
-    for (char *c = key.string; *c != '\0'; ++c) {
+    for (const char *c = key.string; *c != '\0'; ++c) {
         hash = (hash << 5) + *c;
     }
 
@@ -2628,7 +2815,7 @@ usize GSHL_format_writev(GSHL_FormatString *string,
                 continue;
             }
 
-            GSHL_FormatSpecifier *fs = valueP->opaque;
+            GSHL_FormatSpecifier *const fs = valueP->opaque;
             GSHL_ASSERT(fs != NULL);
 
             switch (fs->va_size) {
