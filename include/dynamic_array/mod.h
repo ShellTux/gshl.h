@@ -28,14 +28,14 @@
 
 #define GSHL_DArray_append(DARRAY, ITEM)                                       \
     do {                                                                       \
-        if ((DARRAY)->items == NULL) {                                         \
+        if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
                 calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
             GSHL_ASSERT((DARRAY)->items != NULL);                              \
         }                                                                      \
                                                                                \
-        if ((DARRAY)->count + 1 > (DARRAY)->capacity) {                        \
+        if (GSHL_unlikely((DARRAY)->count + 1 > (DARRAY)->capacity)) {         \
             (DARRAY)->capacity *= 2;                                           \
             (DARRAY)->items =                                                  \
                 realloc((DARRAY)->items,                                       \
@@ -52,14 +52,14 @@
 
 #define GSHL_DArray_extendn(DARRAY, ITEMS, ITEMS_N)                            \
     do {                                                                       \
-        if ((DARRAY)->items == NULL) {                                         \
+        if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
                 calloc((DARRAY)->capacity, sizeof(*(DARRAY)->items));          \
             GSHL_ASSERT((DARRAY)->items != NULL);                              \
         }                                                                      \
                                                                                \
-        if ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {                \
+        if (GSHL_unlikely((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity)) { \
             while ((DARRAY)->count + (ITEMS_N) > (DARRAY)->capacity) {         \
                 (DARRAY)->capacity *= 2;                                       \
             }                                                                  \
@@ -77,7 +77,7 @@
 #define GSHL_DArray_insert(DARRAY, INDEX, ITEM)                                \
     do {                                                                       \
         assert(0 <= INDEX && INDEX <= (DARRAY)->count);                        \
-        if ((DARRAY)->count >= (DARRAY)->capacity) {                           \
+        if (GSHL_unlikely((DARRAY)->count >= (DARRAY)->capacity)) {            \
             (DARRAY)->capacity *= 2;                                           \
             (DARRAY)->items =                                                  \
                 realloc((DARRAY)->items,                                       \

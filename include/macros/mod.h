@@ -24,6 +24,7 @@
 #else
 #    define GSHL_ASSERT(...) GSHL_UNUSED((__VA_ARGS__))
 #endif
+#define GSHL_unlikely(CONDITION) __glibc_unlikely(CONDITION)
 
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
@@ -32,6 +33,7 @@
 #    define TODO GSHL_TODO
 #    define UNREACHABLE GSHL_UNREACHABLE
 #    define UNUSED GSHL_UNUSED
+#    define unlikely GSHL_unlikely
 #endif
 
 #endif // INCLUDE_MACROS_MOD_H_
