@@ -49,8 +49,7 @@ int main(void)
             // NOTE: Here the hash table is passed by pointer to avoid copying
             // it's entire struct, but expect HashTable_search to not modify
             // it's internal state.
-            const HashTableValue *value =
-                HashTable_search(&ht, .string = (char *)key);
+            const HashTableValue *value = HashTable_search(&ht, .string = key);
             if (value) {
                 printf("ht[\"%s\"] = Some(%i)\n", key, value->i32);
             }

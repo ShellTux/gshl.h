@@ -67,8 +67,8 @@
 
 typedef struct GSHL_HashTableEntry {
     union GSHL_HashTableKey {
-        void *opaque; // Generic pointer to key
-        char *string;
+        const void *opaque; // Generic pointer to key
+        const char *string;
         u8 u8;
         u16 u16;
         u32 u32;
@@ -83,7 +83,7 @@ typedef struct GSHL_HashTableEntry {
     } key;
     union GSHL_HashTableValue {
         void *opaque; // Generic pointer to value
-        char *string;
+        const char *string;
         u8 u8;
         u16 u16;
         u32 u32;

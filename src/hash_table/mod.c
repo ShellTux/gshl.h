@@ -115,7 +115,7 @@ static usize GSHL_test_hash_string(const GSHL_HashTableKey key)
 {
     usize hash = 0;
 
-    for (char *c = key.string; *c != '\0'; ++c) {
+    for (const char *c = key.string; *c != '\0'; ++c) {
         hash = (hash << 5) + *c;
     }
 

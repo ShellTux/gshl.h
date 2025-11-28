@@ -240,7 +240,7 @@ usize GSHL_format_writev(GSHL_FormatString *string,
                 continue;
             }
 
-            GSHL_FormatSpecifier *fs = valueP->opaque;
+            GSHL_FormatSpecifier *const fs = valueP->opaque;
             GSHL_ASSERT(fs != NULL);
 
             switch (fs->va_size) {
