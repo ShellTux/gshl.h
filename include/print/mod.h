@@ -1,9 +1,27 @@
 #ifndef INCLUDE_PRINT_MOD_H_
 #define INCLUDE_PRINT_MOD_H_
 
+#include "format/mod.h"
 #include "types/mod.h"
 
+#include <pthread.h>
 #include <stdarg.h>
+
+/// {{{ Types
+
+typedef struct GSHL_GlobalFormatString {
+    struct {
+        GSHL_FormatString string;
+        Fd fd;
+    } buffers[2];
+    pthread_t writer_tid;
+    pthread_mutex_t lock;
+    pthread_cond_t notify;
+    bool init;
+    bool ready;
+} GSHL_GlobalFormatString;
+
+/// }}}
 
 /// {{{ Functions
 
