@@ -118,14 +118,16 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
         .kind = GSHL_FORMAT_SPECIFIER_U32,
         .va_size = sizeof(GSHL_LogKind),
         .write = write_enum_LogKind,
-        .specifiers = {"enum GSHL_LogKind", "GSHL_LogKind"},
+        .specifiers = {"enum GSHL_LogKind", "GSHL_LogKind", "enum LogKind",
+                       "LogKind"},
     });
 
     GSHL_format_specifier_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_POINTER,
         .va_size = sizeof(GSHL_LogConfig *),
         .write = write_struct_LogConfig,
-        .specifiers = {"struct GSHL_LogConfig", "GSHL_LogConfig"},
+        .specifiers = {"struct GSHL_LogConfig", "GSHL_LogConfig",
+                       "struct LogConfig", "LogConfig"},
     });
 }
 
