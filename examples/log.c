@@ -16,7 +16,7 @@ int main(void)
              // O_APPEND: Append to the file
              .file_fd =
                  open("example.log", O_WRONLY | O_CREAT | O_TRUNC, 0644));
-    println("{struct GSHL_LogConfig}", &log_config);
+    log_print_config();
 
     log(DEBUG, "debug message");
     log(INFO, "%i %i", 6, 7);

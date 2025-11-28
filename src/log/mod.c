@@ -232,3 +232,5 @@ void GSHL_log_read_env(void)
         }
     }
 }
+
+void GSHL_log_print_config(void) { GSHL_println("{LogConfig}", &log_config); }

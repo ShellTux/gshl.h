@@ -74,6 +74,7 @@ usize GSHL_log_wrapper(const GSHL_LogKind kind, const GSHL_LogOpts opts,
                        const char *const restrict format, ...);
 GSHL_LogConfig GSHL_log_get_config(void);
 void GSHL_log_read_env(void);
+void GSHL_log_print_config(void);
 
 /// }}}
 
@@ -88,6 +89,7 @@ void GSHL_log_read_env(void);
         static const GSHL_LogKind ENUM = GSHL_LOG_##ENUM;
 GSHL_LOG_VERBOSITY_LEVELS
 #    undef VERBOSITY
+#    define log_print_config GSHL_log_print_config
 #endif
 
 #endif // INCLUDE_LOG_MOD_H_
