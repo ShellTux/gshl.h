@@ -84,6 +84,8 @@ $(BUILD_DIR)/%.o: %.c
 
 PANDOC_OPTS += --filter=pandoc-include
 
+README.md: $(shell find examples -name "*.c")
+
 %.md: .%.md
 	pandoc $(PANDOC_OPTS) --output=$@ $<
 
