@@ -16,13 +16,13 @@
 #define GSHL_FORMAT_SPECIFIERS                                                 \
     /* FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...) */                           \
     FS(0, CSTRING, cstring, cstring, {}, "%s", "string", "cstring")            \
-    FS(1, U8, u8, u8, {})                                                      \
-    FS(2, U16, u16, u16, {})                                                   \
+    FS(1, U8, u8, u8, {}, "u8")                                                \
+    FS(2, U16, u16, u16, {}, "u16")                                            \
     FS(3, U32, u32, u32, {}, "%u", "u32")                                      \
     FS(4, U64, u64, u64, {}, "%lu", "u64")                                     \
     FS(5, USIZE, usize, usize, {}, "%lu", "usize")                             \
-    FS(6, I8, i8, i8, {})                                                      \
-    FS(7, I16, i16, i16, {})                                                   \
+    FS(6, I8, i8, i8, {}, "i8")                                                \
+    FS(7, I16, i16, i16, {}, "i16")                                            \
     FS(8, I32, i32, i32, {}, "%i", "%d", "i32")                                \
     FS(9, I64, i64, i64, {}, "%li", "%ld", "i64")                              \
     FS(10, ISIZE, isize, isize, {}, "%li", "%ld", "isize")                     \
@@ -31,6 +31,14 @@
     FS(13, HEX32, hex32, hex32, { bool uppercase; }, "%x", "%X", "hex32")      \
     FS(14, HEX64, hex64, hex64, { bool uppercase; }, "%lx", "%lX", "hex64")    \
     FS(15, BOOL, boolean, bool, {}, "%B", "boolean", "bool")
+
+#define GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(NAME, ...)                   \
+    void __attribute__((constructor)) GSHL_register_##NAME(void)               \
+    {                                                                          \
+        const GSHL_FormatSpecifier fs = {__VA_ARGS__};                         \
+                                                                               \
+        GSHL_DArray_append(&GSHL_additional_format_specifiers, fs);            \
+    }
 
 /// }}}
 

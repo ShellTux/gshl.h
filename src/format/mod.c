@@ -31,6 +31,8 @@
 
 static __thread GSHL_HashTable GSHL_format_ht = {};
 
+GSHL_FormatSpecifiers GSHL_additional_format_specifiers = {};
+
 static usize GSHL_hash_format_specifier(const char *const start,
                                         const char *const end,
                                         const char **startP)
@@ -126,6 +128,28 @@ __attribute__((constructor)) static void GSHL_init_ht()
                         GSHL_hash_idem);
 
     GSHL_ARRAY_FOREACH(format_specifiers, GSHL_FormatSpecifier fs)
+    {
+        if (fs.write == NULL) {
+            continue;
+        }
+
+        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
+
+#if 0
+        printf("FormatSpecifier {\n"
+               "  .kind = %i\n"
+               "  .va_size = %lu\n"
+               "  .type_string = %s\n"
+               "}\n",
+               fs.kind, fs.va_size, fs.type_string);
+#endif
+
+        GSHL_format_specifier_register(fs);
+    }
+
+    GSHL_ARRAYN_FOREACH(GSHL_additional_format_specifiers.items,
+                        GSHL_additional_format_specifiers.count,
+                        GSHL_FormatSpecifier fs)
     {
         if (fs.write == NULL) {
             continue;
