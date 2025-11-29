@@ -45,6 +45,8 @@ ifndef TARGET_DIR
 $(error TARGET_DIR is not defined)
 endif
 
+EXAMPLES := $(shell find examples -name "*.c" -printf '$(TARGET_DIR)/%p\n')
+
 include targets.mk
 
 ifndef TARGETS
@@ -84,7 +86,7 @@ $(BUILD_DIR)/%.o: %.c
 
 PANDOC_OPTS += --filter=pandoc-include
 
-README.md: $(shell find examples -name "*.c")
+README.md: $(shell grep --only-matching 'examples/.*\.c' .README.md)
 
 %.md: .%.md
 	pandoc $(PANDOC_OPTS) --output=$@ $<
@@ -123,6 +125,7 @@ vars:
 	@echo LDFLAGS=$(LDFLAGS)
 	@echo MODE=$(MODE)
 	@echo TARGETS=$(TARGETS)
+	@echo EXAMPLES=$(EXAMPLES)
 
 .PHONY: compile_flags.txt
 compile_flags.txt:
