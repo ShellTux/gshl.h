@@ -27,6 +27,67 @@
 #    define GSHL_ASSERT(...) GSHL_UNUSED((__VA_ARGS__))
 #endif
 #define GSHL_unlikely(CONDITION) __glibc_unlikely(CONDITION)
+// Credits to RFGW
+#define GSHL_MULTILINE_STR(...) #__VA_ARGS__
+
+// Credit: https://gist.github.com/Jomy10/e0a8d34d3b5793a0d95524b1c5d5c143
+
+#define GSHL_MACRO_ARGS_COUNT(...)                                             \
+    GSHL_MACRO_ARGS_COUNT_(                                                    \
+        __VA_ARGS__, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87,  \
+        86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70,    \
+        69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53,    \
+        52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36,    \
+        35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19,    \
+        18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+
+#define GSHL_MACRO_ARGS_COUNT_(                                                \
+    _100, _99, _98, _97, _96, _95, _94, _93, _92, _91, _90, _89, _88, _87,     \
+    _86, _85, _84, _83, _82, _81, _80, _79, _78, _77, _76, _75, _74, _73, _72, \
+    _71, _70, _69, _68, _67, _66, _65, _64, _63, _62, _61, _60, _59, _58, _57, \
+    _56, _55, _54, _53, _52, _51, _50, _49, _48, _47, _46, _45, _44, _43, _42, \
+    _41, _40, _39, _38, _37, _36, _35, _34, _33, _32, _31, _30, _29, _28, _27, \
+    _26, _25, _24, _23, _22, _21, _20, _19, _18, _17, _16, _15, _14, _13, _12, \
+    _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, N, ...)                      \
+    N
+
+#define GSHL_MACRO_CONCATENATION2(A, B) GSHL_MACRO_CONCATENATION2_(A, B)
+#define GSHL_MACRO_CONCATENATION2_(A, B) A##B
+#define GSHL_MACRO_CONCATENATION3(A, B, C) GSHL_MACRO_CONCATENATION3_(A, B, C)
+#define GSHL_MACRO_CONCATENATION3_(A, B, C) A##B##C
+
+#define GSHL_MACRO_FOREACH(ACTION, ...)                                        \
+    GSHL_MACRO_CONCATENATION2(GSHL_MACRO_FOREACH_,                             \
+                              GSHL_MACRO_ARGS_COUNT(__VA_ARGS__))(ACTION,      \
+                                                                  __VA_ARGS__)
+
+#define GSHL_MACRO_FOREACH_0(ACTION, ELEMENT) ELEMENT
+#define GSHL_MACRO_FOREACH_1(ACTION, ELEMENT) ACTION(ELEMENT)
+#define GSHL_MACRO_FOREACH_2(ACTION, ELEMENT, ...)                             \
+    ACTION(ELEMENT) GSHL_MACRO_FOREACH_1(ACTION, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_3(ACTION, ELEMENT, ...)                             \
+    ACTION(ELEMENT) GSHL_MACRO_FOREACH_2(ACTION, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_4(ACTION, ELEMENT, ...)                             \
+    ACTION(ELEMENT) GSHL_MACRO_FOREACH_3(ACTION, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_5(ACTION, ELEMENT, ...)                             \
+    ACTION(ELEMENT) GSHL_MACRO_FOREACH_4(ACTION, __VA_ARGS__)
+
+#define GSHL_MACRO_FOREACH_N2(ACTION, EXTRA_VAR, ...)                          \
+    GSHL_MACRO_CONCATENATION3(GSHL_MACRO_FOREACH_,                             \
+                              GSHL_MACRO_ARGS_COUNT(__VA_ARGS__),              \
+                              _N2_E)(ACTION, EXTRA_VAR, __VA_ARGS__)
+
+#define GSHL_MACRO_FOREACH_0_N2_E(ACTION, ExtraVar, E, B) ExtraVar, E, B
+#define GSHL_MACRO_FOREACH_2_N2_E(ACTION, EV, E, B) ACTION(EV, E, B)
+#define GSHL_MACRO_FOREACH_4_N2_E(ACTION, EV, E, B, ...)                       \
+    ACTION(EV, E, B) GSHL_MACRO_FOREACH_2_N2_E(ACTION, EV, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_6_N2_E(ACTION, EV, E, B, ...)                       \
+    ACTION(EV, E, B) GSHL_MACRO_FOREACH_4_N2_E(ACTION, EV, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_8_N2_E(ACTION, EV, E, B, ...)                       \
+    ACTION(EV, E, B) GSHL_MACRO_FOREACH_6_N2_E(ACTION, EV, __VA_ARGS__)
+#define GSHL_MACRO_FOREACH_10_N2_E(ACTION, EV, E, B, ...)                      \
+    ACTION(EV, E, B) GSHL_MACRO_FOREACH_8_N2_E(ACTION, EV, __VA_ARGS__)
+
 
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
@@ -399,13 +460,13 @@ typedef GSHL_HashTableValue HashTableValue;
 #define GSHL_FORMAT_SPECIFIERS                                                 \
     /* FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...) */                           \
     FS(0, CSTRING, cstring, cstring, {}, "%s", "string", "cstring")            \
-    FS(1, U8, u8, u8, {})                                                      \
-    FS(2, U16, u16, u16, {})                                                   \
+    FS(1, U8, u8, u8, {}, "u8")                                                \
+    FS(2, U16, u16, u16, {}, "u16")                                            \
     FS(3, U32, u32, u32, {}, "%u", "u32")                                      \
     FS(4, U64, u64, u64, {}, "%lu", "u64")                                     \
     FS(5, USIZE, usize, usize, {}, "%lu", "usize")                             \
-    FS(6, I8, i8, i8, {})                                                      \
-    FS(7, I16, i16, i16, {})                                                   \
+    FS(6, I8, i8, i8, {}, "i8")                                                \
+    FS(7, I16, i16, i16, {}, "i16")                                            \
     FS(8, I32, i32, i32, {}, "%i", "%d", "i32")                                \
     FS(9, I64, i64, i64, {}, "%li", "%ld", "i64")                              \
     FS(10, ISIZE, isize, isize, {}, "%li", "%ld", "isize")                     \
@@ -414,6 +475,14 @@ typedef GSHL_HashTableValue HashTableValue;
     FS(13, HEX32, hex32, hex32, { bool uppercase; }, "%x", "%X", "hex32")      \
     FS(14, HEX64, hex64, hex64, { bool uppercase; }, "%lx", "%lX", "hex64")    \
     FS(15, BOOL, boolean, bool, {}, "%B", "boolean", "bool")
+
+#define GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(NAME, ...)                   \
+    void __attribute__((constructor)) GSHL_register_##NAME(void)               \
+    {                                                                          \
+        const GSHL_FormatSpecifier fs = {__VA_ARGS__};                         \
+                                                                               \
+        GSHL_DArray_append(&GSHL_additional_format_specifiers, fs);            \
+    }
 
 /// }}}
 
@@ -489,9 +558,38 @@ bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs);
 #    define format_write GSHL_format_write
 #    define format_writev GSHL_format_writev
 #    define FormatSpecifier GSHL_FormatSpecifier
+#    define FormatString GSHL_FormatString
+#    define format_specifier_register GSHL_format_specifier_register
 #endif
 
 // #endif // INCLUDE_FORMAT_MOD_H_
+// gshl-priority: 70
+// #ifndef INCLUDE_NET_IP_H_
+// #define INCLUDE_NET_IP_H_
+
+// #include "format/mod.h"
+// #include "types/mod.h"
+
+/// {{{ Types
+
+typedef union GSHL_Ipv4Addr {
+    u8 octects[4];
+    u32 value;
+} GSHL_Ipv4Addr;
+
+/// }}}
+
+/// {{{ Functions
+
+GSHL_FormatSpecifierWriteFunction GSHL_write_Ipv4Addr;
+
+/// }}}
+
+#ifdef GSHL_STRIP_PREFIX
+typedef GSHL_Ipv4Addr Ipv4Addr;
+#endif
+
+// #endif // INCLUDE_NET_IP_H_
 // #ifndef INCLUDE_TYPES_LIMITS_H_
 // #define INCLUDE_TYPES_LIMITS_H_
 
@@ -679,6 +777,52 @@ GSHLDEF usize GSHL_run_tests(const char *filter);
 #endif
 
 // #endif // INCLUDE_TEST_MOD_H_
+// #ifndef INCLUDE_TAGGED_UNION_MOD_H_
+// #define INCLUDE_TAGGED_UNION_MOD_H_
+
+// #include "macros/mod.h"
+
+#define __ENUM_NAME(NAME) NAME##Tag
+#define __ENUM_VAL(NAME) __ENUM_NAME(NAME),
+#define __UNION_FIELD(NAME) NAME __UNION_NAME(NAME);
+#define __UNION_NAME(NAME) as##NAME
+
+#define GSHL_TaggedUnionTypeDecl(NAME, ...)                                    \
+    struct NAME {                                                              \
+        enum NAME##Tag{GSHL_MACRO_FOREACH(__ENUM_VAL, __VA_ARGS__)} tag;       \
+        union {                                                                \
+            GSHL_MACRO_FOREACH(__UNION_FIELD, __VA_ARGS__)                     \
+        };                                                                     \
+    }
+
+#define GSHL_TaggedUnionValue(TAG, ...)                                        \
+    {                                                                          \
+        .tag = __ENUM_NAME(TAG), .__UNION_NAME(TAG) = { __VA_ARGS__ }          \
+    }
+
+#define __MATCH_CASE(TU, TAG, block)                                           \
+case __ENUM_NAME(TAG): {                                                       \
+    const TAG *__UNION_NAME(TAG) = &(TU).__UNION_NAME(TAG);                    \
+    block;                                                                     \
+};
+
+#define GSHL_match(TAGGED_UNION, ...)                                          \
+    switch ((TAGGED_UNION).tag) {                                              \
+        GSHL_MACRO_FOREACH_N2(__MATCH_CASE, TAGGED_UNION, __VA_ARGS__)         \
+    default:                                                                   \
+        GSHL_UNREACHABLE("Unknown tag: %u", (TAGGED_UNION).tag);               \
+        break;                                                                 \
+    }
+
+#ifdef GSHL_STRIP_PREFIX
+#    define TaggedUnionValue GSHL_TaggedUnionValue
+#    define TaggedUnionTypeDecl GSHL_TaggedUnionTypeDecl
+#    define TUValue GSHL_TaggedUnionValue
+#    define TUTypeDecl GSHL_TaggedUnionTypeDecl
+#    define match GSHL_match
+#endif
+
+// #endif // INCLUDE_TAGGED_UNION_MOD_H_
 // #ifndef INCLUDE_PRINT_MOD_H_
 // #define INCLUDE_PRINT_MOD_H_
 
@@ -734,6 +878,54 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 #endif
 
 // #endif // INCLUDE_PRINT_MOD_H_
+// #ifndef INCLUDE_NET_SOCKET_ADDR_H_
+// #define INCLUDE_NET_SOCKET_ADDR_H_
+
+// #include "format/mod.h"
+// #include "types/mod.h"
+
+// #include "ip.h"
+
+/// {{{ Types
+
+typedef struct GSHL_SocketAddrV4 {
+    GSHL_Ipv4Addr address;
+    u16 port;
+    Fd fd;
+} GSHL_SocketAddrV4;
+
+/// }}}
+
+/// {{{ Functions
+
+GSHL_FormatSpecifierWriteFunction GSHL_write_SocketAddrV4;
+bool GSHL_SocketAddrV4_socket(GSHL_SocketAddrV4 *sock);
+bool GSHL_SocketAddrV4_bind(const GSHL_SocketAddrV4 *sock);
+bool GSHL_SocketAddrV4_listen(const GSHL_SocketAddrV4 *sock,
+                              const usize queue_size);
+GSHL_SocketAddrV4
+GSHL_SocketAddrV4_accept(const GSHL_SocketAddrV4 *server_socket);
+bool GSHL_SocketAddrV4_connect(const GSHL_SocketAddrV4 *server_socket,
+                               GSHL_SocketAddrV4 *const client_socket);
+bool GSHL_SocketAddrV4_close(GSHL_SocketAddrV4 *sock);
+
+/// }}}
+
+#ifdef GSHL_STRIP_PREFIX
+typedef GSHL_SocketAddrV4 SocketAddrV4;
+#    define SocketAddrV4_socket GSHL_SocketAddrV4_socket
+#    define SocketAddrV4_bind GSHL_SocketAddrV4_bind
+#    define SocketAddrV4_listen GSHL_SocketAddrV4_listen
+#    define SocketAddrV4_accept GSHL_SocketAddrV4_accept
+#    define SocketAddrV4_connect GSHL_SocketAddrV4_connect
+#    define SocketAddrV4_close GSHL_SocketAddrV4_close
+#endif
+
+// #endif // INCLUDE_NET_SOCKET_ADDR_H_
+// #ifndef INCLUDE_NET_MOD_H_
+// #define INCLUDE_NET_MOD_H_
+
+// #endif // INCLUDE_NET_MOD_H_
 // #ifndef INCLUDE_MEM_MOD_H_
 // #define INCLUDE_MEM_MOD_H_
 
@@ -1647,6 +1839,151 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 
     return write(fd, view.start, view.len) + write(fd, "\n", 1);
 }
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/net/socket_addr.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "net/socket_addr.h"
+
+// #include "format/mod.h"
+// #include "macros/mod.h"
+// #include "types/mod.h"
+
+#include <arpa/inet.h>
+#include <assert.h>
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;
+
+usize GSHL_write_SocketAddrV4(GSHL_FormatString *string,
+                              const GSHL_FormatSpecifier *fs)
+{
+    const GSHL_SocketAddrV4 *socket = fs->value.pointer;
+
+    return GSHL_format_write(string,
+                             "SocketAddrV4 {{\n"
+                             "  .address = {Ipv4Addr}\n"
+                             "  .port = {u16}\n"
+                             "}}",
+                             &socket->address, socket->port);
+}
+
+bool GSHL_SocketAddrV4_socket(GSHL_SocketAddrV4 *sock)
+{
+    sock->fd = socket(AF_INET, SOCK_STREAM, 0);
+    return sock->fd != 0;
+}
+
+bool GSHL_SocketAddrV4_bind(const GSHL_SocketAddrV4 *sock)
+{
+    struct sockaddr_in address;
+
+    // Setting up the address structure
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = sock->address.value;
+    address.sin_port = htons(sock->port);
+
+    // Binding socket to the specified port
+    return bind(sock->fd, (struct sockaddr *)&address, sizeof(address)) >= 0;
+}
+
+bool GSHL_SocketAddrV4_listen(const GSHL_SocketAddrV4 *sock,
+                              const usize queue_size)
+{
+    return listen(sock->fd, (int)queue_size) >= 0;
+}
+
+GSHL_SocketAddrV4 GSHL_SocketAddrV4_accept(const GSHL_SocketAddrV4 *sock)
+{
+    struct sockaddr_in client_address;
+    socklen_t client_address_len = sizeof(client_address);
+
+    const Fd fd = accept(sock->fd, (struct sockaddr *)&client_address,
+                         &client_address_len);
+    return (GSHL_SocketAddrV4){
+        .address.value = client_address.sin_addr.s_addr,
+        .port = ntohs(client_address.sin_port),
+        .fd = fd,
+    };
+}
+
+bool GSHL_SocketAddrV4_connect(const GSHL_SocketAddrV4 *server_socket,
+                               GSHL_SocketAddrV4 *client_socket)
+{
+    client_socket->fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket->fd < 0) {
+        return false;
+    }
+
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(server_socket->port);
+    serv_addr.sin_addr.s_addr = server_socket->address.value;
+
+    if (connect(client_socket->fd, (struct sockaddr *)&serv_addr,
+                sizeof(serv_addr)) < 0) {
+        return false;
+    }
+
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+    getsockname(client_socket->fd, (struct sockaddr *)&client_addr, &addr_len);
+
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+
+    client_socket->address.value = client_addr.sin_addr.s_addr;
+    client_socket->port = ntohs(client_addr.sin_port);
+
+    return true;
+}
+
+bool GSHL_SocketAddrV4_close(GSHL_SocketAddrV4 *sock)
+{
+    if (sock->fd == 0) {
+        return false;
+    }
+    else {
+        close(sock->fd);
+        sock->fd = 0;
+        return true;
+    }
+}
+
+GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
+    GSHL_SocketAddrV4, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+    .va_size = sizeof(GSHL_SocketAddrV4 *), .write = GSHL_write_SocketAddrV4,
+    .specifiers = {"GSHL_SocketAddrV4", "SocketAddrV4"});
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/net/ip.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "net/ip.h"
+
+// #include "format/mod.h"
+// #include "macros/mod.h"
+// #include "types/mod.h"
+
+#include <assert.h>
+#include <stdlib.h>
+
+extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;
+
+usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
+                          const GSHL_FormatSpecifier *fs)
+{
+    const GSHL_Ipv4Addr *addr = fs->value.pointer;
+
+    return GSHL_format_write(string, "{u16}.{u16}.{u16}.{u16}",
+                             addr->octects[0], addr->octects[1],
+                             addr->octects[2], addr->octects[3]);
+}
+
+GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
+    GSHL_Ipv4Addr, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+    .va_size = sizeof(GSHL_Ipv4Addr *), .write = GSHL_write_Ipv4Addr,
+    .specifiers = {"GSHL_Ipv4Addr", "Ipv4Addr"});
 #ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/math/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
@@ -2602,6 +2939,8 @@ GSHL_TEST(write_pointer)
 
 static __thread GSHL_HashTable GSHL_format_ht = {};
 
+GSHL_FormatSpecifiers GSHL_additional_format_specifiers = {};
+
 static usize GSHL_hash_format_specifier(const char *const start,
                                         const char *const end,
                                         const char **startP)
@@ -2697,6 +3036,28 @@ __attribute__((constructor)) static void GSHL_init_ht()
                         GSHL_hash_idem);
 
     GSHL_ARRAY_FOREACH(format_specifiers, GSHL_FormatSpecifier fs)
+    {
+        if (fs.write == NULL) {
+            continue;
+        }
+
+        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
+
+#if 0
+        printf("FormatSpecifier {\n"
+               "  .kind = %i\n"
+               "  .va_size = %lu\n"
+               "  .type_string = %s\n"
+               "}\n",
+               fs.kind, fs.va_size, fs.type_string);
+#endif
+
+        GSHL_format_specifier_register(fs);
+    }
+
+    GSHL_ARRAYN_FOREACH(GSHL_additional_format_specifiers.items,
+                        GSHL_additional_format_specifiers.count,
+                        GSHL_FormatSpecifier fs)
     {
         if (fs.write == NULL) {
             continue;
