@@ -69,7 +69,7 @@ echo '#ifndef INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
 echo '#define INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
 for header in $header_deps
 do
-  awk '/^\/\/ gshl-priority: [0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$header"
+  awk '/^\/\/ gshl-priority: -?[0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$header"
 done | sort --reverse | while read -r priority header
 do
   printf ' %i %s\r' "$priority" "$header"
@@ -86,7 +86,7 @@ echo '#endif // INCLUDE_GSHL_H_' | tee --append "$single_header" >/dev/null
 echo '#ifdef GSHL_IMPLEMENTATION' | tee --append "$single_header" >/dev/null
 for src in $src_deps
 do
-  awk '/^\/\/ gshl-priority: [0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$src"
+  awk '/^\/\/ gshl-priority: -?[0-9]+$/ {found=1; print $3 " " FILENAME} END {if (!found) print 0 " " FILENAME}' "$src"
 done | sort --reverse | while read -r priority src
 do
   printf ' %i %s\r' "$priority" "$src"
