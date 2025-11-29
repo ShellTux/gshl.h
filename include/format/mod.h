@@ -106,6 +106,8 @@ bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs);
 #    define format_write GSHL_format_write
 #    define format_writev GSHL_format_writev
 #    define FormatSpecifier GSHL_FormatSpecifier
+#    define FormatString GSHL_FormatString
+#    define format_specifier_register GSHL_format_specifier_register
 #endif
 
 #endif // INCLUDE_FORMAT_MOD_H_
