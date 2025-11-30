@@ -1,15 +1,7 @@
 #define GSHL_IMPLEMENTATION
 #define GSHL_STRIP_PREFIX
 #include "../../gshl.h"
-
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#define PORT 8080
-#define BUFFER_SIZE 1024
+#include "config.h"
 
 int main()
 {

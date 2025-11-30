@@ -384,11 +384,12 @@ int main(void)
 #define GSHL_STRIP_PREFIX
 #define GSHL_IMPLEMENTATION
 #include "../../gshl.h"
+#include "config.h"
 
 int main()
 {
     SocketAddrV4 server_socket = {.address.octects = {127, 0, 0, 1},
-                                  .port = 8080};
+                                  .port = PORT};
     println("server_socket = {SocketAddrV4}", &server_socket);
 
     if (!SocketAddrV4_socket(&server_socket)) {
@@ -415,7 +416,6 @@ int main()
     println("client_socket = {SocketAddrV4}", &client_socket);
 
     // Reading and echoing back data
-#define BUFFER_SIZE 4096
     char buffer[BUFFER_SIZE] = {0};
     while (1) {
         buffer[0] = '\0';
@@ -457,15 +457,7 @@ int main()
 #define GSHL_IMPLEMENTATION
 #define GSHL_STRIP_PREFIX
 #include "../../gshl.h"
-
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#define PORT 8080
-#define BUFFER_SIZE 1024
+#include "config.h"
 
 int main()
 {
