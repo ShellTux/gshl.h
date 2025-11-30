@@ -33,6 +33,7 @@
     FS(15, BOOL, boolean, bool, {}, "%B", "boolean", "bool")
 
 #define GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(NAME, ...)                   \
+    extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;            \
     void __attribute__((constructor)) GSHL_register_##NAME(void)               \
     {                                                                          \
         const GSHL_FormatSpecifier fs = {__VA_ARGS__};                         \
@@ -116,6 +117,8 @@ bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs);
 #    define FormatSpecifier GSHL_FormatSpecifier
 #    define FormatString GSHL_FormatString
 #    define format_specifier_register GSHL_format_specifier_register
+#    define FORMAT_SPECIFIER_REGISTER_ADDITIONAL                               \
+        GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL
 #endif
 
 #endif // INCLUDE_FORMAT_MOD_H_

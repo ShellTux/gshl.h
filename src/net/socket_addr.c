@@ -1,7 +1,6 @@
 #include "net/socket_addr.h"
 
 #include "format/mod.h"
-#include "macros/mod.h"
 #include "types/mod.h"
 
 #include <arpa/inet.h>
@@ -10,8 +9,6 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;
 
 usize GSHL_write_SocketAddrV4(GSHL_FormatString *string,
                               const GSHL_FormatSpecifier *fs)

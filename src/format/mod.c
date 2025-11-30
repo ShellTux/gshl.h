@@ -264,22 +264,21 @@ usize GSHL_format_writev(GSHL_FormatString *string,
                 continue;
             }
 
-            GSHL_FormatSpecifier *const fs = valueP->opaque;
-            GSHL_ASSERT(fs != NULL);
+            GSHL_FormatSpecifier fs = *(GSHL_FormatSpecifier *)valueP->opaque;
 
-            switch (fs->va_size) {
+            switch (fs.va_size) {
             case 4:
-                fs->value.u32 = va_arg(args, u32);
+                fs.value.u32 = va_arg(args, u32);
                 break;
             case 8:
-                fs->value.u64 = va_arg(args, u64);
+                fs.value.u64 = va_arg(args, u64);
                 break;
             default:
-                GSHL_UNREACHABLE("Wrong fs->va_size = %lu", fs->va_size);
+                GSHL_UNREACHABLE("Wrong fs->va_size = %lu", fs.va_size);
                 break;
             }
 
-            fs->write(string, fs);
+            fs.write(string, &fs);
 
             formatC = formatEnd - 1;
         }
@@ -307,6 +306,11 @@ char *GSHL_formatv(const char *const restrict format, va_list args)
     return GSHL_string_dup(view.start);
 }
 
+static int GSHL_compare_strings(const void *a, const void *b)
+{
+    return strcmp(*(const char **)a, *(const char **)b);
+}
+
 void GSHL_print_registered_format_specifiers(void)
 {
 #if 0
@@ -323,6 +327,10 @@ void GSHL_print_registered_format_specifiers(void)
         ((GSHL_FormatSpecifier *)current->value.opaque)->va_size,
         ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
 #else
+    GSHL_DArrayTypeDecl(GSHL_FSS, const char *);
+    GSHL_FSS fss = {};
+    GSHL_DArray_init(&fss);
+
     GSHL_ARRAYN_FOREACH(GSHL_format_ht.table, GSHL_format_ht.table_size,
                         GSHL_HashTableEntry * entry)
     {
@@ -335,10 +343,25 @@ void GSHL_print_registered_format_specifiers(void)
                     break;
                 }
 
-                printf(GSHL_FG_CYAN("%s") "\n", specifier);
+                // printf(GSHL_FG_CYAN("%s") "\n", specifier);
+                GSHL_DArray_append(&fss, specifier);
             }
         }
     }
+
+    qsort(fss.items, fss.count, sizeof(fss.items[0]), GSHL_compare_strings);
+    const char *unique_fs = NULL;
+    GSHL_ARRAYN_FOREACH(fss.items, fss.count, char *const fs)
+    {
+        if (unique_fs != NULL && strcmp(unique_fs, fs) == 0) {
+            continue;
+        }
+
+        printf(GSHL_FG_CYAN("%s") "\n", fs);
+        unique_fs = fs;
+    }
+
+    GSHL_DArray_destroy(&fss);
 #endif
 }
 

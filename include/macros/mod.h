@@ -86,6 +86,16 @@
 #define GSHL_MACRO_FOREACH_10_N2_E(ACTION, EV, E, B, ...)                      \
     ACTION(EV, E, B) GSHL_MACRO_FOREACH_8_N2_E(ACTION, EV, __VA_ARGS__)
 
+#ifndef GSHL_NODISCARD
+#    define GSHL_NODISCARD [[nodiscard]]
+#endif
+#if defined(__clang__)
+#    define GSHL_Nullable _Nullable
+#    define GSHL_Nonnull _Nonnull
+#else
+#    define GSHL_Nullable
+#    define GSHL_Nonnull
+#endif
 
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
@@ -95,6 +105,9 @@
 #    define UNREACHABLE GSHL_UNREACHABLE
 #    define UNUSED GSHL_UNUSED
 #    define unlikely GSHL_unlikely
+#    define NODISCARD GSHL_NODISCARD
+#    define Nullable GSHL_Nullable
+#    define Nonnull GSHL_Nonnull
 #endif
 
 #endif // INCLUDE_MACROS_MOD_H_

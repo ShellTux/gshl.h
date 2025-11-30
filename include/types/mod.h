@@ -2,6 +2,8 @@
 #ifndef INCLUDE_TYPES_MOD_H_
 #define INCLUDE_TYPES_MOD_H_
 
+#include "macros/mod.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 

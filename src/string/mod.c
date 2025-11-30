@@ -8,7 +8,7 @@ char *GSHL_string_dup(const char *const source)
     return strcpy(malloc(len + 1), source);
 }
 
-void GSHL_string_reverse(char *start, char *end)
+void GSHL_string_reverse(char *restrict start, char *restrict end)
 {
     end -= 1;
 
@@ -28,13 +28,13 @@ void GSHL_string_reverse(char *start, char *end)
 GSHL_TEST(string_dup)
 {
     {
-        char *s = string_dup("example");
+        char *s = GSHL_string_dup("example");
         GSHL_TEST_STR_EQUAL(s, "example");
         free(s);
     }
 
     {
-        char *s = string_dup("Hello world!");
+        char *s = GSHL_string_dup("Hello world!");
         GSHL_TEST_STR_EQUAL(s, "Hello world!");
         free(s);
     }
