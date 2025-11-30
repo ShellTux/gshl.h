@@ -7,28 +7,31 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef uintmax_t usize;
+/// {{{ Macros
 
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef intmax_t isize;
+#define GSHL_TYPES                                                             \
+    GSHL_TYPE(u8, uint8_t)                                                     \
+    GSHL_TYPE(u16, uint16_t)                                                   \
+    GSHL_TYPE(u32, uint32_t)                                                   \
+    GSHL_TYPE(u64, uint64_t)                                                   \
+    GSHL_TYPE(usize, uintmax_t)                                                \
+    GSHL_TYPE(i8, int8_t)                                                      \
+    GSHL_TYPE(i16, int16_t)                                                    \
+    GSHL_TYPE(i32, int32_t)                                                    \
+    GSHL_TYPE(i64, int64_t)                                                    \
+    GSHL_TYPE(isize, intmax_t)                                                 \
+    GSHL_TYPE(f32, float)                                                      \
+    GSHL_TYPE(f64, double)                                                     \
+    GSHL_TYPE(cstring, char *)                                                 \
+    GSHL_TYPE(pointer, void *)                                                 \
+    GSHL_TYPE(hex32, u32)                                                      \
+    GSHL_TYPE(hex64, u64)                                                      \
+    GSHL_TYPE(Fd, int)
 
-typedef float f32;
-typedef double f64;
+/// }}}
 
-typedef char *cstring;
-
-typedef void *pointer;
-
-typedef u32 hex32;
-typedef u64 hex64;
-
-typedef int Fd;
+#define GSHL_TYPE(ALIAS, TYPE) typedef TYPE ALIAS;
+GSHL_TYPES
+#undef GSHL_TYPE
 
 #endif // INCLUDE_TYPES_MOD_H_

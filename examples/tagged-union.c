@@ -40,17 +40,12 @@ static usize write_Shape(GSHL_FormatString *string, const FormatSpecifier *fs)
         });
 }
 
+FORMAT_SPECIFIER_REGISTER(Shape, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+                          .va_size = sizeof(Shape *), .write = write_Shape,
+                          .specifiers = {"Shape"})
+
 int main(void)
 {
-    if (!format_specifier_register((FormatSpecifier){
-            .kind = GSHL_FORMAT_SPECIFIER_POINTER,
-            .va_size = sizeof(Shape *),
-            .write = write_Shape,
-            .specifiers = {"Shape"},
-        })) {
-        dprintln(STDERR_FILENO, "Failed to register Shape");
-    }
-
     static const Shape shapes[] = {
         TaggedUnionValue(Circle, .radius = 50),
         TaggedUnionValue(Rectangle, .width = 30, .height = 50),

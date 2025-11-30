@@ -1,7 +1,7 @@
 #ifndef INCLUDE_FORMAT_HEX_H_
 #define INCLUDE_FORMAT_HEX_H_
 
-#include "format/mod.h"
+#include "format/register.h"
 
 /// {{{ Functions
 

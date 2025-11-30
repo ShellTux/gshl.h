@@ -88,6 +88,16 @@
 #define GSHL_MACRO_FOREACH_10_N2_E(ACTION, EV, E, B, ...)                      \
     ACTION(EV, E, B) GSHL_MACRO_FOREACH_8_N2_E(ACTION, EV, __VA_ARGS__)
 
+#ifndef GSHL_NODISCARD
+#    define GSHL_NODISCARD [[nodiscard]]
+#endif
+#if defined(__clang__)
+#    define GSHL_Nullable _Nullable
+#    define GSHL_Nonnull _Nonnull
+#else
+#    define GSHL_Nullable
+#    define GSHL_Nonnull
+#endif
 
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
@@ -97,6 +107,9 @@
 #    define UNREACHABLE GSHL_UNREACHABLE
 #    define UNUSED GSHL_UNUSED
 #    define unlikely GSHL_unlikely
+#    define NODISCARD GSHL_NODISCARD
+#    define Nullable GSHL_Nullable
+#    define Nonnull GSHL_Nonnull
 #endif
 
 // #endif // INCLUDE_MACROS_MOD_H_
@@ -104,32 +117,37 @@
 // #ifndef INCLUDE_TYPES_MOD_H_
 // #define INCLUDE_TYPES_MOD_H_
 
+// #include "macros/mod.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef uintmax_t usize;
+/// {{{ Macros
 
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef intmax_t isize;
+#define GSHL_TYPES                                                             \
+    GSHL_TYPE(u8, uint8_t)                                                     \
+    GSHL_TYPE(u16, uint16_t)                                                   \
+    GSHL_TYPE(u32, uint32_t)                                                   \
+    GSHL_TYPE(u64, uint64_t)                                                   \
+    GSHL_TYPE(usize, uintmax_t)                                                \
+    GSHL_TYPE(i8, int8_t)                                                      \
+    GSHL_TYPE(i16, int16_t)                                                    \
+    GSHL_TYPE(i32, int32_t)                                                    \
+    GSHL_TYPE(i64, int64_t)                                                    \
+    GSHL_TYPE(isize, intmax_t)                                                 \
+    GSHL_TYPE(f32, float)                                                      \
+    GSHL_TYPE(f64, double)                                                     \
+    GSHL_TYPE(cstring, char *)                                                 \
+    GSHL_TYPE(pointer, void *)                                                 \
+    GSHL_TYPE(hex32, u32)                                                      \
+    GSHL_TYPE(hex64, u64)                                                      \
+    GSHL_TYPE(Fd, int)
 
-typedef float f32;
-typedef double f64;
+/// }}}
 
-typedef char *cstring;
-
-typedef void *pointer;
-
-typedef u32 hex32;
-typedef u64 hex64;
-
-typedef int Fd;
+#define GSHL_TYPE(ALIAS, TYPE) typedef TYPE ALIAS;
+GSHL_TYPES
+#undef GSHL_TYPE
 
 // #endif // INCLUDE_TYPES_MOD_H_
 // gshl-priority: 85
@@ -275,6 +293,7 @@ typedef struct GSHL_HashTableEntry {
     } value;
     // Pointer to the next entry for collision resolution
     struct GSHL_HashTableEntry *next;
+    void (*free_element)(void *);
 } GSHL_HashTableEntry;
 
 typedef union GSHL_HashTableKey GSHL_HashTableKey;
@@ -286,6 +305,7 @@ typedef struct GSHL_HashTable {
     GSHL_HashTableEntry **table;
     usize table_size;
     GSHL_HashTableHashFunction *hash;
+    f32 load_factor;
     char *description;
     char *key_type;
     char *value_type;
@@ -446,11 +466,41 @@ typedef GSHL_HashTableValue HashTableValue;
 // #ifndef INCLUDE_FORMAT_MOD_H_
 // #define INCLUDE_FORMAT_MOD_H_
 
-// #include "dynamic_array/mod.h"
 // #include "string/mod.h"
 
 #include <stdarg.h>
 #include <stddef.h>
+
+/// {{{ Functions
+
+usize GSHL_hash_format_specifier(const char *const start, const char *const end,
+                                 const char **startP);
+
+GSHL_StringView GSHL_format_wrapper(const char *const restrict format, ...);
+GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
+                                     va_list args);
+
+GSHL_NODISCARD char *GSHL_format(const char *const restrict format, ...);
+GSHL_NODISCARD char *GSHL_formatv(const char *const restrict format,
+                                  va_list args);
+
+/// }}}
+
+#ifdef GSHL_STRIP_PREFIX
+#    define format GSHL_format
+#    define formatv GSHL_formatv
+#    define format_write GSHL_format_write
+#    define format_writev GSHL_format_writev
+#endif
+
+// #endif // INCLUDE_FORMAT_MOD_H_
+// gshl-priority: 75
+// #ifndef INCLUDE_FORMAT_REGISTER_H_
+// #define INCLUDE_FORMAT_REGISTER_H_
+
+// #include "types/mod.h"
+
+// #include "dynamic_array/mod.h"
 
 /// {{{ Macros
 
@@ -476,12 +526,17 @@ typedef GSHL_HashTableValue HashTableValue;
     FS(14, HEX64, hex64, hex64, { bool uppercase; }, "%lx", "%lX", "hex64")    \
     FS(15, BOOL, boolean, bool, {}, "%B", "boolean", "bool")
 
-#define GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(NAME, ...)                   \
-    void __attribute__((constructor)) GSHL_register_##NAME(void)               \
+#define GSHL_FORMAT_SPECIFIER_REGISTER(NAME, ...)                              \
+    bool __attribute__((constructor)) GSHL_format_specifier_register_##NAME(   \
+        void)                                                                  \
     {                                                                          \
         const GSHL_FormatSpecifier fs = {__VA_ARGS__};                         \
                                                                                \
-        GSHL_DArray_append(&GSHL_additional_format_specifiers, fs);            \
+        if (!GSHL_format_specifiers_register(fs)) {                            \
+            return false;                                                      \
+        }                                                                      \
+                                                                               \
+        return true;                                                           \
     }
 
 /// }}}
@@ -532,42 +587,25 @@ GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers, GSHL_FormatSpecifier);
 
 /// {{{ Functions
 
-GSHL_StringView GSHL_format_wrapper(const char *const restrict format, ...);
-GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
-                                     va_list args);
-
-usize GSHL_format_write(GSHL_FormatString *string,
-                        const char *const restrict format, ...);
-usize GSHL_format_writev(GSHL_FormatString *string,
-                         const char *const restrict format, va_list args);
-
-char *GSHL_format(const char *const restrict format, ...);
-char *GSHL_formatv(const char *const restrict format, va_list args);
-
-void GSHL_print_registered_format_specifiers(void);
-
-bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs);
+void GSHL_format_specifiers_print(void);
+bool GSHL_format_specifiers_register(const GSHL_FormatSpecifier fs);
 
 /// }}}
 
 #ifdef GSHL_STRIP_PREFIX
-#    define format GSHL_format
-#    define formatv GSHL_formatv
-#    define print_registered_format_specifiers                                 \
-        GSHL_print_registered_format_specifiers
-#    define format_write GSHL_format_write
-#    define format_writev GSHL_format_writev
-#    define FormatSpecifier GSHL_FormatSpecifier
-#    define FormatString GSHL_FormatString
+typedef GSHL_FormatSpecifier FormatSpecifier;
+typedef GSHL_FormatString FormatString;
 #    define format_specifier_register GSHL_format_specifier_register
+#    define format_specifiers_print GSHL_format_specifiers_print
+#    define FORMAT_SPECIFIER_REGISTER GSHL_FORMAT_SPECIFIER_REGISTER
 #endif
 
-// #endif // INCLUDE_FORMAT_MOD_H_
+// #endif // INCLUDE_FORMAT_REGISTER_H_
 // gshl-priority: 70
 // #ifndef INCLUDE_NET_IP_H_
 // #define INCLUDE_NET_IP_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 // #include "types/mod.h"
 
 /// {{{ Types
@@ -590,6 +628,99 @@ typedef GSHL_Ipv4Addr Ipv4Addr;
 #endif
 
 // #endif // INCLUDE_NET_IP_H_
+// gshl-priority: 70
+// #ifndef INCLUDE_FORMAT_WRITE_H_
+// #define INCLUDE_FORMAT_WRITE_H_
+
+// #include "format/register.h"
+
+// #include "types/mod.h"
+
+#include <stdarg.h>
+
+/// {{{ Functions
+
+usize GSHL_format_write(GSHL_FormatString *string,
+                        const char *const restrict format, ...);
+usize GSHL_format_writev(GSHL_FormatString *string,
+                         const char *const restrict format, va_list args);
+
+/// }}}
+
+// #endif // INCLUDE_FORMAT_WRITE_H_
+// #ifndef INCLUDE_OPTION_MOD_H_
+// #define INCLUDE_OPTION_MOD_H_
+
+// #include "types/mod.h"
+
+#define Option(TYPE) Option_##TYPE
+#define None(TYPE)                                                             \
+    (Option_##TYPE) { .variant = GSHL_NoneTag }
+#define Some(TYPE, VALUE)                                                      \
+    (Option_##TYPE) { .variant = GSHL_SomeTag, .some.value = VALUE, }
+
+#define OptionDecl(TYPE)                                                       \
+    typedef struct Some_##TYPE Some_##TYPE;                                    \
+    typedef struct Option_##TYPE {                                             \
+        enum OptionVariants variant;                                           \
+        union {                                                                \
+            struct Some_##TYPE {                                               \
+                TYPE value;                                                    \
+            } some;                                                            \
+        };                                                                     \
+    } Option_##TYPE;                                                           \
+    usize GSHL_write_Option_##TYPE(GSHL_FormatString *string,                  \
+                                   const GSHL_FormatSpecifier *const fs)       \
+    {                                                                          \
+        const Option(TYPE) *opt = fs->value.pointer;                           \
+        switch (opt->variant) {                                                \
+        case GSHL_NoneTag:                                                     \
+            return GSHL_format_write(string, "Option::" #TYPE "(None)");       \
+        case GSHL_SomeTag:                                                     \
+            return GSHL_format_write(string,                                   \
+                                     "Option::" #TYPE "(Some({" #TYPE "}))",   \
+                                     opt->some.value);                         \
+        default:                                                               \
+            GSHL_UNREACHABLE("Unknown variant: %u", opt->variant);             \
+            break;                                                             \
+        }                                                                      \
+                                                                               \
+        return 0;                                                              \
+    }                                                                          \
+                                                                               \
+    GSHL_FORMAT_SPECIFIER_REGISTER(                                            \
+        GSHL_Option_##TYPE, .kind = GSHL_FORMAT_SPECIFIER_POINTER,             \
+        .va_size = sizeof(Option_##TYPE *), .write = GSHL_write_Option_##TYPE, \
+        .specifiers = {"Option_" #TYPE, "Option(" #TYPE ")",                   \
+                       "Option::" #TYPE})
+
+#define is_some() variant == GSHL_SomeTag
+#define is_none() variant == GSHL_NoneTag
+
+#define Option_unwrap(A)                                                       \
+    (Option_is_some_or_panic((A).variant,                                      \
+                             "%s:%i: Panic: unwrap on a None value", __FILE__, \
+                             __LINE__)                                         \
+         ? (A).some.value                                                      \
+         : (A).some.value)
+
+#define Option_unwrap_or(A, OR_VALUE)                                          \
+    (((A).is_some()) ? (A).some.value : OR_VALUE)
+
+/// {{{ Types
+
+typedef enum OptionVariants { GSHL_NoneTag, GSHL_SomeTag } OptionVariants;
+
+/// }}}
+
+/// {{{ Functions
+
+bool Option_is_some_or_panic(const enum OptionVariants variant,
+                             const char *const restrict format, ...);
+
+/// }}}
+
+// #endif // INCLUDE_OPTION_MOD_H_
 // #ifndef INCLUDE_TYPES_LIMITS_H_
 // #define INCLUDE_TYPES_LIMITS_H_
 
@@ -827,6 +958,7 @@ case __ENUM_NAME(TAG): {                                                       \
 // #define INCLUDE_PRINT_MOD_H_
 
 // #include "format/mod.h"
+// #include "format/register.h"
 // #include "types/mod.h"
 
 #include <pthread.h>
@@ -881,7 +1013,6 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 // #ifndef INCLUDE_NET_SOCKET_ADDR_H_
 // #define INCLUDE_NET_SOCKET_ADDR_H_
 
-// #include "format/mod.h"
 // #include "types/mod.h"
 
 // #include "ip.h"
@@ -1110,7 +1241,7 @@ usize GSHL_hash_djb2(const char *string);
 // #ifndef INCLUDE_FORMAT_USIZE_H_
 // #define INCLUDE_FORMAT_USIZE_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1122,7 +1253,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_usize;
 // #ifndef INCLUDE_FORMAT_U8_H_
 // #define INCLUDE_FORMAT_U8_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1131,11 +1262,10 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_u8;
 /// }}}
 
 // #endif // INCLUDE_FORMAT_U8_H_
- 
 // #ifndef INCLUDE_FORMAT_U64_H_
 // #define INCLUDE_FORMAT_U64_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1147,7 +1277,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_u64;
 // #ifndef INCLUDE_FORMAT_U32_H_
 // #define INCLUDE_FORMAT_U32_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1159,7 +1289,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_u32;
 // #ifndef INCLUDE_FORMAT_U16_H_
 // #define INCLUDE_FORMAT_U16_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1171,7 +1301,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_u16;
 // #ifndef INCLUDE_FORMAT_POINTER_H_
 // #define INCLUDE_FORMAT_POINTER_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1183,7 +1313,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_pointer;
 // #ifndef INCLUDE_FORMAT_ISIZE_H_
 // #define INCLUDE_FORMAT_ISIZE_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1195,7 +1325,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_isize;
 // #ifndef INCLUDE_FORMAT_I8_H_
 // #define INCLUDE_FORMAT_I8_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1207,7 +1337,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_i8;
 // #ifndef INCLUDE_FORMAT_I64_H_
 // #define INCLUDE_FORMAT_I64_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1219,7 +1349,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_i64;
 // #ifndef INCLUDE_FORMAT_I32_H_
 // #define INCLUDE_FORMAT_I32_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1231,7 +1361,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_i32;
 // #ifndef INCLUDE_FORMAT_I16_H_
 // #define INCLUDE_FORMAT_I16_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1243,7 +1373,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_i16;
 // #ifndef INCLUDE_FORMAT_HEX_H_
 // #define INCLUDE_FORMAT_HEX_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1256,7 +1386,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_hex64;
 // #ifndef INCLUDE_FORMAT_CSTRING_H_
 // #define INCLUDE_FORMAT_CSTRING_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1268,7 +1398,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_cstring;
 // #ifndef INCLUDE_FORMAT_CHARACTER_H_
 // #define INCLUDE_FORMAT_CHARACTER_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1280,7 +1410,7 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_char;
 // #ifndef INCLUDE_FORMAT_BOOL_H_
 // #define INCLUDE_FORMAT_BOOL_H_
 
-// #include "format/mod.h"
+// #include "format/register.h"
 
 /// {{{ Functions
 
@@ -1426,6 +1556,35 @@ typedef struct GSHL_ArrayForEachOpts {
 #endif // INCLUDE_GSHL_H_
 #ifdef GSHL_IMPLEMENTATION
 #ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/types/option/mod.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "types/option/mod.h"
+
+// #include "format/write.h"
+// #include "print/mod.h"
+
+#include <stdlib.h>
+#include <unistd.h>
+
+#define GSHL_TYPE(ALIAS, TYPE) OptionDecl(ALIAS);
+GSHL_TYPES
+#undef GSHL_TYPE
+
+bool Option_is_some_or_panic(const enum OptionVariants variant,
+                             const char *const restrict format, ...)
+{
+    if (variant == GSHL_NoneTag) {
+        va_list args;
+        va_start(args, format);
+        GSHL_dprintlnv(STDERR_FILENO, format, args);
+        va_end(args);
+        exit(EXIT_FAILURE);
+        return false;
+    }
+
+    return true;
+}
+#ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/types/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "types/mod.h"
@@ -1561,7 +1720,7 @@ char *GSHL_string_dup(const char *const source)
     return strcpy(malloc(len + 1), source);
 }
 
-void GSHL_string_reverse(char *start, char *end)
+void GSHL_string_reverse(char *restrict start, char *restrict end)
 {
     end -= 1;
 
@@ -1581,13 +1740,13 @@ void GSHL_string_reverse(char *start, char *end)
 GSHL_TEST(string_dup)
 {
     {
-        char *s = string_dup("example");
+        char *s = GSHL_string_dup("example");
         GSHL_TEST_STR_EQUAL(s, "example");
         free(s);
     }
 
     {
-        char *s = string_dup("Hello world!");
+        char *s = GSHL_string_dup("Hello world!");
         GSHL_TEST_STR_EQUAL(s, "Hello world!");
         free(s);
     }
@@ -1844,8 +2003,7 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "net/socket_addr.h"
 
-// #include "format/mod.h"
-// #include "macros/mod.h"
+// #include "format/write.h"
 // #include "types/mod.h"
 
 #include <arpa/inet.h>
@@ -1854,8 +2012,6 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;
 
 usize GSHL_write_SocketAddrV4(GSHL_FormatString *string,
                               const GSHL_FormatSpecifier *fs)
@@ -1952,7 +2108,7 @@ bool GSHL_SocketAddrV4_close(GSHL_SocketAddrV4 *sock)
     }
 }
 
-GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
+GSHL_FORMAT_SPECIFIER_REGISTER(
     GSHL_SocketAddrV4, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
     .va_size = sizeof(GSHL_SocketAddrV4 *), .write = GSHL_write_SocketAddrV4,
     .specifiers = {"GSHL_SocketAddrV4", "SocketAddrV4"});
@@ -1961,14 +2117,11 @@ GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "net/ip.h"
 
-// #include "format/mod.h"
-// #include "macros/mod.h"
+// #include "format/register.h"
+// #include "format/write.h"
 // #include "types/mod.h"
 
 #include <assert.h>
-#include <stdlib.h>
-
-extern GSHL_FormatSpecifiers GSHL_additional_format_specifiers;
 
 usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
                           const GSHL_FormatSpecifier *fs)
@@ -1980,10 +2133,11 @@ usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
                              addr->octects[2], addr->octects[3]);
 }
 
-GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
-    GSHL_Ipv4Addr, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
-    .va_size = sizeof(GSHL_Ipv4Addr *), .write = GSHL_write_Ipv4Addr,
-    .specifiers = {"GSHL_Ipv4Addr", "Ipv4Addr"});
+GSHL_FORMAT_SPECIFIER_REGISTER(GSHL_Ipv4Addr,
+                               .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+                               .va_size = sizeof(GSHL_Ipv4Addr *),
+                               .write = GSHL_write_Ipv4Addr,
+                               .specifiers = {"GSHL_Ipv4Addr", "Ipv4Addr"});
 #ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/math/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
@@ -2053,7 +2207,8 @@ GSHL_TEST(is_power_of_two)
 
 // #include "ansi/colors.h"
 // #include "array/mod.h"
-// #include "format/mod.h"
+// #include "format/register.h"
+// #include "format/write.h"
 // #include "macros/mod.h"
 // #include "math/mod.h"
 // #include "print/mod.h"
@@ -2165,7 +2320,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
 
     GSHL_ASSERT(log_config.fd > 0);
 
-    GSHL_format_specifier_register((GSHL_FormatSpecifier){
+    GSHL_format_specifiers_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_U32,
         .va_size = sizeof(GSHL_LogKind),
         .write = write_enum_LogKind,
@@ -2173,7 +2328,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
                        "LogKind"},
     });
 
-    GSHL_format_specifier_register((GSHL_FormatSpecifier){
+    GSHL_format_specifiers_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_POINTER,
         .va_size = sizeof(GSHL_LogConfig *),
         .write = write_struct_LogConfig,
@@ -2400,6 +2555,17 @@ bool GSHL_HashTable_destroy(GSHL_HashTable *ht)
     return true;
 }
 
+void GSHL_HashTable_resize(GSHL_HashTable *ht)
+{
+    if (ht->load_factor < .75f) {
+        return;
+    }
+
+    while (ht->load_factor >= .25f) {
+        GSHL_TODO("Unimplemented: %s", __FUNCTION__);
+    }
+}
+
 #ifdef GSHL_TESTS
 // #    include "test/mod.h"
 
@@ -2525,6 +2691,99 @@ usize GSHL_hash_djb2(const char *string)
     return hash;
 }
 #ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/format/write.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/write.h"
+
+// #include "format/mod.h"
+// #include "hash_table/mod.h"
+
+#include <assert.h>
+#include <stdlib.h>
+
+extern __thread GSHL_HashTable GSHL_format_ht;
+
+usize GSHL_format_write(GSHL_FormatString *string,
+                        const char *const restrict format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    const usize count = GSHL_format_writev(string, format, args);
+    va_end(args);
+    return count;
+}
+
+usize GSHL_format_writev(GSHL_FormatString *string,
+                         const char *const restrict format, va_list args)
+{
+    const char *formatEnd = format;
+
+    for (const char *formatC = format; *formatC != '\0'; formatC += 1) {
+        formatEnd = formatC;
+
+        if ((formatC[0] == '{' && formatC[1] == '{') ||
+            (formatC[0] == '}' && formatC[1] == '}')) {
+            GSHL_DArray_append(string, formatC[1]);
+            formatC += 1;
+            continue;
+        }
+
+        const usize fs_hash =
+            GSHL_hash_format_specifier(formatC, NULL, &formatEnd);
+
+        if (formatC == formatEnd) {
+            GSHL_DArray_append(string, *formatC);
+        }
+        else {
+            const GSHL_HashTableValue *valueP =
+                GSHL_HashTable_search(&GSHL_format_ht, .usize = fs_hash);
+            if (valueP == NULL) {
+                fprintf(stderr, "format: \"%s\" \"%.*s\"\n", format,
+                        (int)(formatEnd - formatC), formatC);
+                fprintf(stderr, "hash: %lu\n", fs_hash);
+                fprintf(stderr, "valueP: %p\n", valueP);
+                fprintf(stderr, "Unknown format specifier '%.*s'\n",
+                        (int)(formatEnd - formatC), formatC);
+
+                for (; formatC < formatEnd; formatC += 1) {
+                    GSHL_DArray_append(string, *formatC);
+                }
+
+                formatC = formatEnd - 1;
+                continue;
+            }
+
+            GSHL_FormatSpecifier fs = *(GSHL_FormatSpecifier *)valueP->opaque;
+
+            GSHL_ASSERT(fs.write != NULL);
+            GSHL_ASSERT(fs.value.usize == 0);
+
+            switch (fs.va_size) {
+            case 4:
+                fs.value.u32 = va_arg(args, u32);
+                break;
+            case 8:
+                fs.value.u64 = va_arg(args, u64);
+                break;
+            default:
+                GSHL_UNREACHABLE("Wrong fs->va_size = %lu", fs.va_size);
+                break;
+            }
+
+            fs.write(string, &fs);
+
+            formatC = formatEnd - 1;
+        }
+    }
+
+    GSHL_ASSERT(format <= formatEnd);
+
+    return (usize)(formatEnd - format);
+}
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/format/wrapper.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+#ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/format/usize.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "format/usize.h"
@@ -2629,6 +2888,7 @@ GSHL_TEST(write_usize)
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "format/u8.h"
 
+// #include "format/register.h"
 // #include "format/usize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
@@ -2836,6 +3096,135 @@ GSHL_TEST(write_u16)
 
 #endif
 #ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/format/specifier.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+#ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/format/register.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "format/register.h"
+
+// #include "format/bool.h"    // IWYU pragma: keep
+// #include "format/char.h"    // IWYU pragma: keep
+// #include "format/cstring.h" // IWYU pragma: keep
+// #include "format/hex.h"     // IWYU pragma: keep
+// #include "format/i16.h"     // IWYU pragma: keep
+// #include "format/i32.h"     // IWYU pragma: keep
+// #include "format/i64.h"     // IWYU pragma: keep
+// #include "format/i8.h"      // IWYU pragma: keep
+// #include "format/isize.h"   // IWYU pragma: keep
+// #include "format/pointer.h" // IWYU pragma: keep
+// #include "format/u16.h"     // IWYU pragma: keep
+// #include "format/u32.h"     // IWYU pragma: keep
+// #include "format/u64.h"     // IWYU pragma: keep
+// #include "format/u8.h"      // IWYU pragma: keep
+// #include "format/usize.h"   // IWYU pragma: keep
+
+// #include "ansi/colors.h"
+// #include "array/mod.h"
+// #include "format/u8.h"
+// #include "hash_table/mod.h"
+// #include "print/mod.h"
+
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+__thread GSHL_HashTable GSHL_format_ht = {};
+__thread GSHL_FormatSpecifiers GSHL_format_specifiers = {};
+
+static int GSHL_compare_strings(const void *a, const void *b)
+{
+    return strcmp(*(const char **)a, *(const char **)b);
+}
+
+static usize GSHL_hash_idem(const GSHL_HashTableKey key) { return key.usize; }
+
+void GSHL_format_specifiers_print(void)
+{
+    GSHL_DArrayTypeDecl(GSHL_FSS, const char *);
+    GSHL_FSS fss = {};
+    GSHL_DArray_init(&fss);
+
+    GSHL_ARRAYN_FOREACH(GSHL_format_ht.table, GSHL_format_ht.table_size,
+                        GSHL_HashTableEntry * entry)
+    {
+        for (const GSHL_HashTableEntry *current = entry; current != NULL;
+             current = current->next) {
+            const GSHL_FormatSpecifier *fs = current->value.opaque;
+            GSHL_ARRAY_FOREACH(fs->specifiers, char *specifier)
+            {
+                if (specifier == NULL || specifier[0] == '\0') {
+                    break;
+                }
+
+                // printf(GSHL_FG_CYAN("%s") "\n", specifier);
+                GSHL_DArray_append(&fss, specifier);
+            }
+        }
+    }
+
+    qsort(fss.items, fss.count, sizeof(fss.items[0]), GSHL_compare_strings);
+    const char *unique_fs = NULL;
+    GSHL_ARRAYN_FOREACH(fss.items, fss.count, char *const fs)
+    {
+        if (unique_fs != NULL && strcmp(unique_fs, fs) == 0) {
+            continue;
+        }
+
+        printf(GSHL_FG_CYAN("%s") "\n", fs);
+        unique_fs = fs;
+    }
+
+    GSHL_DArray_destroy(&fss);
+}
+
+bool GSHL_format_specifiers_register(const GSHL_FormatSpecifier fs)
+{
+
+    if (GSHL_format_ht.table_size == 0) {
+        GSHL_HashTable_init(&GSHL_format_ht, usize, GSHL_FormatSpecifier *,
+                            GSHL_hash_idem);
+    }
+
+    GSHL_DArray_append(&GSHL_format_specifiers, fs);
+
+    GSHL_ARRAY_FOREACH(fs.specifiers, char *specifier)
+    {
+        if (specifier == NULL || specifier[0] == '\0') {
+            break;
+        }
+
+        const char *const start = specifier;
+        const char *const end = specifier + strlen(specifier);
+        const usize hash = GSHL_hash_format_specifier(start, end, NULL);
+        if (GSHL_HashTable_search(&GSHL_format_ht, .usize = hash) != NULL) {
+#ifdef GSHL_DEBUG
+            GSHL_dprintln(STDERR_FILENO,
+                          "Format Specifier already registered: %s", specifier);
+#endif
+            continue;
+        }
+
+        GSHL_ASSERT(fs.va_size % 4 == 0);
+
+        GSHL_HashTable_insert(
+            &GSHL_format_ht, .usize = hash,
+            .opaque = &GSHL_format_specifiers
+                           .items[GSHL_format_specifiers.count - 1]);
+    }
+
+    return true;
+}
+
+#define FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...)                             \
+    GSHL_FORMAT_SPECIFIER_REGISTER(                                            \
+        NAME, .kind = GSHL_FORMAT_SPECIFIER_##ENUM,                            \
+        .va_size = (((sizeof(TYPE) - 1) / 4) + 1) * 4,                         \
+        .write = GSHL_write_##TYPE, .specifiers = {__VA_ARGS__})
+GSHL_FORMAT_SPECIFIERS
+#undef FS
+#ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/format/pointer.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "format/pointer.h"
@@ -2907,43 +3296,20 @@ GSHL_TEST(write_pointer)
 #    line 0 "src/format/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "format/mod.h"
+// #include "format/register.h"
+// #include "format/write.h"
 
-// #include "format/bool.h"    // IWYU pragma: keep
-// #include "format/char.h"    // IWYU pragma: keep
-// #include "format/cstring.h" // IWYU pragma: keep
-// #include "format/hex.h"     // IWYU pragma: keep
-// #include "format/i16.h"     // IWYU pragma: keep
-// #include "format/i32.h"     // IWYU pragma: keep
-// #include "format/i64.h"     // IWYU pragma: keep
-// #include "format/i8.h"      // IWYU pragma: keep
-// #include "format/isize.h"   // IWYU pragma: keep
-// #include "format/pointer.h" // IWYU pragma: keep
-// #include "format/u16.h"     // IWYU pragma: keep
-// #include "format/u32.h"     // IWYU pragma: keep
-// #include "format/u64.h"     // IWYU pragma: keep
-// #include "format/u8.h"      // IWYU pragma: keep
-// #include "format/usize.h"   // IWYU pragma: keep
-
-// #include "ansi/mod.h"
 // #include "array/mod.h"
-// #include "hash_table/mod.h"
 // #include "macros/mod.h"
-// #include "print/mod.h"
 // #include "string/mod.h"
 
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
-static __thread GSHL_HashTable GSHL_format_ht = {};
-
-GSHL_FormatSpecifiers GSHL_additional_format_specifiers = {};
-
-static usize GSHL_hash_format_specifier(const char *const start,
-                                        const char *const end,
-                                        const char **startP)
+usize GSHL_hash_format_specifier(const char *const start, const char *const end,
+                                 const char **startP)
 {
     u32 hash = 2166136261u; // FNV offset basis
 
@@ -3016,83 +3382,6 @@ static usize GSHL_hash_format_specifier(const char *const start,
     return hash;
 }
 
-static usize GSHL_hash_idem(const GSHL_HashTableKey key) { return key.usize; }
-
-__attribute__((constructor)) static void GSHL_init_ht()
-{
-    GSHL_FormatSpecifier format_specifiers[] = {
-#define FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...)                             \
-    [BIT_SHIFT] = {                                                            \
-        .kind = GSHL_FORMAT_SPECIFIER_##ENUM,                                  \
-        .write = GSHL_write_##TYPE,                                            \
-        .va_size = (((sizeof(TYPE) - 1) / 4) + 1) * 4,                         \
-        .specifiers = {__VA_ARGS__},                                           \
-    },
-        GSHL_FORMAT_SPECIFIERS
-#undef FS
-    };
-
-    GSHL_HashTable_init(&GSHL_format_ht, usize, GSHL_FormatSpecifier *,
-                        GSHL_hash_idem);
-
-    GSHL_ARRAY_FOREACH(format_specifiers, GSHL_FormatSpecifier fs)
-    {
-        if (fs.write == NULL) {
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
-
-#if 0
-        printf("FormatSpecifier {\n"
-               "  .kind = %i\n"
-               "  .va_size = %lu\n"
-               "  .type_string = %s\n"
-               "}\n",
-               fs.kind, fs.va_size, fs.type_string);
-#endif
-
-        GSHL_format_specifier_register(fs);
-    }
-
-    GSHL_ARRAYN_FOREACH(GSHL_additional_format_specifiers.items,
-                        GSHL_additional_format_specifiers.count,
-                        GSHL_FormatSpecifier fs)
-    {
-        if (fs.write == NULL) {
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
-
-#if 0
-        printf("FormatSpecifier {\n"
-               "  .kind = %i\n"
-               "  .va_size = %lu\n"
-               "  .type_string = %s\n"
-               "}\n",
-               fs.kind, fs.va_size, fs.type_string);
-#endif
-
-        GSHL_format_specifier_register(fs);
-    }
-
-#if 0
-    GSHL_HashTable_print(
-        GSHL_format_ht, "%lu", usize, "%p", opaque,
-        "FormatSpecifier {\n"
-        "  .kind = %u\n"
-        "  .write = %p\n"
-        "  .va_size = %lu\n"
-        "  .type_string = %s\n"
-        "}",
-        ((GSHL_FormatSpecifier *)current->value.opaque)->kind,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->write,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->va_size,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
-#endif
-}
-
 GSHL_StringView GSHL_format_wrapper(const char *restrict format, ...)
 {
     va_list args;
@@ -3126,82 +3415,6 @@ GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
     };
 }
 
-usize GSHL_format_write(GSHL_FormatString *string,
-                        const char *const restrict format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    const usize count = GSHL_format_writev(string, format, args);
-    va_end(args);
-    return count;
-}
-
-usize GSHL_format_writev(GSHL_FormatString *string,
-                         const char *const restrict format, va_list args)
-{
-    const char *formatEnd = format;
-
-    for (const char *formatC = format; *formatC != '\0'; formatC += 1) {
-        formatEnd = formatC;
-
-        if ((formatC[0] == '{' && formatC[1] == '{') ||
-            (formatC[0] == '}' && formatC[1] == '}')) {
-            GSHL_DArray_append(string, formatC[1]);
-            formatC += 1;
-            continue;
-        }
-
-        const usize fs_hash =
-            GSHL_hash_format_specifier(formatC, NULL, &formatEnd);
-
-        if (formatC == formatEnd) {
-            GSHL_DArray_append(string, *formatC);
-        }
-        else {
-            const GSHL_HashTableValue *valueP =
-                GSHL_HashTable_search(&GSHL_format_ht, .usize = fs_hash);
-            if (valueP == NULL) {
-                fprintf(stderr, "format: \"%s\" \"%.*s\"\n", format,
-                        (int)(formatEnd - formatC), formatC);
-                fprintf(stderr, "hash: %lu\n", fs_hash);
-                fprintf(stderr, "valueP: %p\n", valueP);
-                fprintf(stderr, "Unknown format specifier '%.*s'\n",
-                        (int)(formatEnd - formatC), formatC);
-
-                for (; formatC < formatEnd; formatC += 1) {
-                    GSHL_DArray_append(string, *formatC);
-                }
-
-                formatC = formatEnd - 1;
-                continue;
-            }
-
-            GSHL_FormatSpecifier *const fs = valueP->opaque;
-            GSHL_ASSERT(fs != NULL);
-
-            switch (fs->va_size) {
-            case 4:
-                fs->value.u32 = va_arg(args, u32);
-                break;
-            case 8:
-                fs->value.u64 = va_arg(args, u64);
-                break;
-            default:
-                GSHL_UNREACHABLE("Wrong fs->va_size = %lu", fs->va_size);
-                break;
-            }
-
-            fs->write(string, fs);
-
-            formatC = formatEnd - 1;
-        }
-    }
-
-    GSHL_ASSERT(format <= formatEnd);
-
-    return (usize)(formatEnd - format);
-}
-
 char *GSHL_format(const char *const restrict format, ...)
 {
     va_list args;
@@ -3217,74 +3430,6 @@ char *GSHL_formatv(const char *const restrict format, va_list args)
     const GSHL_StringView view = GSHL_format_wrapperv(format, args);
 
     return GSHL_string_dup(view.start);
-}
-
-void GSHL_print_registered_format_specifiers(void)
-{
-#if 0
-    GSHL_HashTable_print(
-        GSHL_format_ht, "%lu", usize, "%p", opaque,
-        "FormatSpecifier {\n"
-        "    .kind = %u\n"
-        "    .write = %p\n"
-        "    .va_size = %lu\n"
-        "    .type_string = %s\n"
-        "  }",
-        ((GSHL_FormatSpecifier *)current->value.opaque)->kind,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->write,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->va_size,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
-#else
-    GSHL_ARRAYN_FOREACH(GSHL_format_ht.table, GSHL_format_ht.table_size,
-                        GSHL_HashTableEntry * entry)
-    {
-        for (const GSHL_HashTableEntry *current = entry; current != NULL;
-             current = current->next) {
-            const GSHL_FormatSpecifier *fs = current->value.opaque;
-            GSHL_ARRAY_FOREACH(fs->specifiers, char *specifier)
-            {
-                if (specifier == NULL || specifier[0] == '\0') {
-                    break;
-                }
-
-                printf(GSHL_FG_CYAN("%s") "\n", specifier);
-            }
-        }
-    }
-#endif
-}
-
-bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs)
-{
-    static __thread GSHL_FormatSpecifiers format_specifiers = {};
-
-    GSHL_DArray_append(&format_specifiers, fs);
-
-    GSHL_ARRAY_FOREACH(fs.specifiers, char *specifier)
-    {
-        if (specifier == NULL || specifier[0] == '\0') {
-            break;
-        }
-
-        const char *const start = specifier;
-        const char *const end = specifier + strlen(specifier);
-        const usize hash = GSHL_hash_format_specifier(start, end, NULL);
-        if (GSHL_HashTable_search(&GSHL_format_ht, .usize = hash) != NULL) {
-#ifdef GSHL_DEBUG
-            GSHL_dprintln(STDERR_FILENO,
-                          "Format Specifier already registered: %s", specifier);
-#endif
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size % 4 == 0);
-
-        GSHL_HashTable_insert(
-            &GSHL_format_ht, .usize = hash,
-            .opaque = &format_specifiers.items[format_specifiers.count - 1]);
-    }
-
-    return true;
 }
 
 #ifdef GSHL_TESTS
@@ -3928,6 +4073,7 @@ GSHL_TEST(write_char)
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "format/bool.h"
 
+// #include "dynamic_array/mod.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
 

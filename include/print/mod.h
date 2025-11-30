@@ -2,6 +2,7 @@
 #define INCLUDE_PRINT_MOD_H_
 
 #include "format/mod.h"
+#include "format/register.h"
 #include "types/mod.h"
 
 #include <pthread.h>

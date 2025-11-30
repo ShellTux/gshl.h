@@ -1,5 +1,6 @@
 #include "format/u8.h"
 
+#include "format/register.h"
 #include "format/usize.h"
 #include "macros/mod.h"
 #include "string/mod.h"

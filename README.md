@@ -19,9 +19,20 @@ format specifiers
 #define GSHL_STRIP_PREFIX
 #include "../gshl.h"
 
+enum Day {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+};
+
 struct Foo {
     i32 bar;
     char *baz;
+    enum Day day;
 };
 
 usize write_struct_Foo(GSHL_FormatString *string,
@@ -33,19 +44,10 @@ usize write_struct_Foo(GSHL_FormatString *string,
                              "struct Foo {{\n"
                              "  .bar = %i,\n"
                              "  .baz = \"%s\",\n"
+                             "  .day = {enum Day}\n"
                              "}}",
-                             foo->bar, foo->baz);
+                             foo->bar, foo->baz, foo->day);
 }
-
-enum Day {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
-};
 
 usize write_enum_Day(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -71,29 +73,22 @@ usize write_enum_Day(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
     return GSHL_format_write(string, "");
 }
 
+FORMAT_SPECIFIER_REGISTER(Foo, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+                          .write = write_struct_Foo,
+                          .va_size = sizeof(struct Foo *),
+                          .specifiers = {"struct Foo", "Foo"});
+
+FORMAT_SPECIFIER_REGISTER(Day, .kind = GSHL_FORMAT_SPECIFIER_I32,
+                          .va_size = sizeof(enum Day), .write = write_enum_Day,
+                          .specifiers = {"enum Day", "Day"});
+
 int main(void)
 {
-    if (!GSHL_format_specifier_register((FormatSpecifier){
-            .kind = GSHL_FORMAT_SPECIFIER_POINTER,
-            .write = write_struct_Foo,
-            .va_size = sizeof(struct Foo *),
-            .opts = {},
-            .specifiers = {"struct Foo", "Foo"},
-        })) {
-        dprint(STDERR_FILENO, "Failed to register %s", "struct Foo");
-    }
+    // You can register formats mannually
+    // GSHL_format_specifier_register_Foo();
+    // GSHL_format_specifier_register_Day();
 
-    if (!GSHL_format_specifier_register((FormatSpecifier){
-            .kind = GSHL_FORMAT_SPECIFIER_I32,
-            .write = write_enum_Day,
-            .va_size = sizeof(enum Day),
-            .opts = {},
-            .specifiers = {"enum Day", "Day"},
-        })) {
-        dprintln(STDERR_FILENO, "Failed to register %s", "enum Day");
-    }
-
-    print_registered_format_specifiers();
+    format_specifiers_print();
 
     for (usize number = 0; number <= 10; number += 1) {
         println("{usize}! = %lu", number, factorial(number));
@@ -103,21 +98,17 @@ int main(void)
         const struct Foo foo = {
             .bar = 69,
             .baz = "Hello world!",
+            .day = Friday,
         };
 
         println("{Foo}", &foo);
         println("foo = {struct Foo}", &foo);
     }
 
-    {
-        const enum Day wed = Wednesday;
-        println("day: {enum Day}\n", wed);
-    }
-
     println("NULL = {pointer}", NULL);
 
     int var;
-    println("&var = %p", &var);
+    println("&var = %p %u", &var, -34);
 
     println("{string} %s", "Hello", "world!");
 
@@ -310,17 +301,12 @@ static usize write_Shape(GSHL_FormatString *string, const FormatSpecifier *fs)
         });
 }
 
+FORMAT_SPECIFIER_REGISTER(Shape, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+                          .va_size = sizeof(Shape *), .write = write_Shape,
+                          .specifiers = {"Shape"})
+
 int main(void)
 {
-    if (!format_specifier_register((FormatSpecifier){
-            .kind = GSHL_FORMAT_SPECIFIER_POINTER,
-            .va_size = sizeof(Shape *),
-            .write = write_Shape,
-            .specifiers = {"Shape"},
-        })) {
-        dprintln(STDERR_FILENO, "Failed to register Shape");
-    }
-
     static const Shape shapes[] = {
         TaggedUnionValue(Circle, .radius = 50),
         TaggedUnionValue(Rectangle, .width = 30, .height = 50),
@@ -332,6 +318,59 @@ int main(void)
     };
 
     ARRAY_FOREACH(shapes, Shape shape) { println("shape = {Shape}", &shape); }
+
+    return 0;
+}
+```
+
+### Option
+
+If you want rust option in c look at `./examples/option.c`:
+
+``` c
+#define GSHL_IMPLEMENTATION
+#define GSHL_STRIP_PREFIX
+#include "../gshl.h"
+
+#define Option_match(A) switch ((A).variant)
+
+Option(usize) fact(const isize n)
+{
+    if (n < 0) {
+        return None(usize);
+    }
+
+    if (n <= 1) {
+        return Some(usize, 1);
+    }
+
+    return Some(usize, n * factorial(n - 1));
+}
+
+int main(void)
+{
+    {
+        const Option(i32) a = Some(i32, 5);
+        println("{Option(i32)}.unwrap() = {i32}", &a, Option_unwrap(a));
+    }
+
+    {
+        const Option(i32) a = None(i32);
+        println("{Option(i32)}.unwrap_or(0) = {i32}", &a,
+                Option_unwrap_or(a, 0));
+    }
+
+    for (isize n = -2; n <= 5; n++) {
+        const Option(usize) result = fact(n);
+
+        if (result.is_some()) {
+            println("{isize}! = {Option(usize)}.unwrap() = {usize}", n, &result,
+                    Option_unwrap(result));
+        }
+        else {
+            println("{isize}! = {Option(usize)}", n, &result);
+        }
+    }
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #include "net/socket_addr.h"
 
-#include "format/mod.h"
+#include "format/write.h"
 #include "types/mod.h"
 
 #include <arpa/inet.h>
@@ -105,7 +105,7 @@ bool GSHL_SocketAddrV4_close(GSHL_SocketAddrV4 *sock)
     }
 }
 
-GSHL_FORMAT_SPECIFIER_REGISTER_ADDITIONAL(
+GSHL_FORMAT_SPECIFIER_REGISTER(
     GSHL_SocketAddrV4, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
     .va_size = sizeof(GSHL_SocketAddrV4 *), .write = GSHL_write_SocketAddrV4,
     .specifiers = {"GSHL_SocketAddrV4", "SocketAddrV4"});

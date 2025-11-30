@@ -1,41 +1,18 @@
 #include "format/mod.h"
+#include "format/register.h"
+#include "format/write.h"
 
-#include "format/bool.h"    // IWYU pragma: keep
-#include "format/char.h"    // IWYU pragma: keep
-#include "format/cstring.h" // IWYU pragma: keep
-#include "format/hex.h"     // IWYU pragma: keep
-#include "format/i16.h"     // IWYU pragma: keep
-#include "format/i32.h"     // IWYU pragma: keep
-#include "format/i64.h"     // IWYU pragma: keep
-#include "format/i8.h"      // IWYU pragma: keep
-#include "format/isize.h"   // IWYU pragma: keep
-#include "format/pointer.h" // IWYU pragma: keep
-#include "format/u16.h"     // IWYU pragma: keep
-#include "format/u32.h"     // IWYU pragma: keep
-#include "format/u64.h"     // IWYU pragma: keep
-#include "format/u8.h"      // IWYU pragma: keep
-#include "format/usize.h"   // IWYU pragma: keep
-
-#include "ansi/mod.h"
 #include "array/mod.h"
-#include "hash_table/mod.h"
 #include "macros/mod.h"
-#include "print/mod.h"
 #include "string/mod.h"
 
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
-static __thread GSHL_HashTable GSHL_format_ht = {};
-
-GSHL_FormatSpecifiers GSHL_additional_format_specifiers = {};
-
-static usize GSHL_hash_format_specifier(const char *const start,
-                                        const char *const end,
-                                        const char **startP)
+usize GSHL_hash_format_specifier(const char *const start, const char *const end,
+                                 const char **startP)
 {
     u32 hash = 2166136261u; // FNV offset basis
 
@@ -108,83 +85,6 @@ static usize GSHL_hash_format_specifier(const char *const start,
     return hash;
 }
 
-static usize GSHL_hash_idem(const GSHL_HashTableKey key) { return key.usize; }
-
-__attribute__((constructor)) static void GSHL_init_ht()
-{
-    GSHL_FormatSpecifier format_specifiers[] = {
-#define FS(BIT_SHIFT, ENUM, NAME, TYPE, OPTS, ...)                             \
-    [BIT_SHIFT] = {                                                            \
-        .kind = GSHL_FORMAT_SPECIFIER_##ENUM,                                  \
-        .write = GSHL_write_##TYPE,                                            \
-        .va_size = (((sizeof(TYPE) - 1) / 4) + 1) * 4,                         \
-        .specifiers = {__VA_ARGS__},                                           \
-    },
-        GSHL_FORMAT_SPECIFIERS
-#undef FS
-    };
-
-    GSHL_HashTable_init(&GSHL_format_ht, usize, GSHL_FormatSpecifier *,
-                        GSHL_hash_idem);
-
-    GSHL_ARRAY_FOREACH(format_specifiers, GSHL_FormatSpecifier fs)
-    {
-        if (fs.write == NULL) {
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
-
-#if 0
-        printf("FormatSpecifier {\n"
-               "  .kind = %i\n"
-               "  .va_size = %lu\n"
-               "  .type_string = %s\n"
-               "}\n",
-               fs.kind, fs.va_size, fs.type_string);
-#endif
-
-        GSHL_format_specifier_register(fs);
-    }
-
-    GSHL_ARRAYN_FOREACH(GSHL_additional_format_specifiers.items,
-                        GSHL_additional_format_specifiers.count,
-                        GSHL_FormatSpecifier fs)
-    {
-        if (fs.write == NULL) {
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size == 4 || fs.va_size == 8);
-
-#if 0
-        printf("FormatSpecifier {\n"
-               "  .kind = %i\n"
-               "  .va_size = %lu\n"
-               "  .type_string = %s\n"
-               "}\n",
-               fs.kind, fs.va_size, fs.type_string);
-#endif
-
-        GSHL_format_specifier_register(fs);
-    }
-
-#if 0
-    GSHL_HashTable_print(
-        GSHL_format_ht, "%lu", usize, "%p", opaque,
-        "FormatSpecifier {\n"
-        "  .kind = %u\n"
-        "  .write = %p\n"
-        "  .va_size = %lu\n"
-        "  .type_string = %s\n"
-        "}",
-        ((GSHL_FormatSpecifier *)current->value.opaque)->kind,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->write,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->va_size,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
-#endif
-}
-
 GSHL_StringView GSHL_format_wrapper(const char *restrict format, ...)
 {
     va_list args;
@@ -218,77 +118,6 @@ GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
     };
 }
 
-usize GSHL_format_write(GSHL_FormatString *string,
-                        const char *const restrict format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    const usize count = GSHL_format_writev(string, format, args);
-    va_end(args);
-    return count;
-}
-
-usize GSHL_format_writev(GSHL_FormatString *string,
-                         const char *const restrict format, va_list args)
-{
-    const char *formatEnd = format;
-
-    for (const char *formatC = format; *formatC != '\0'; formatC += 1) {
-        formatEnd = formatC;
-
-        if ((formatC[0] == '{' && formatC[1] == '{') ||
-            (formatC[0] == '}' && formatC[1] == '}')) {
-            GSHL_DArray_append(string, formatC[1]);
-            formatC += 1;
-            continue;
-        }
-
-        const usize fs_hash =
-            GSHL_hash_format_specifier(formatC, NULL, &formatEnd);
-
-        if (formatC == formatEnd) {
-            GSHL_DArray_append(string, *formatC);
-        }
-        else {
-            const GSHL_HashTableValue *valueP =
-                GSHL_HashTable_search(&GSHL_format_ht, .usize = fs_hash);
-            if (valueP == NULL) {
-                fprintf(stderr, "Unknown format specifier '%.*s'\n",
-                        (int)(formatEnd - formatC), formatC);
-
-                for (; formatC < formatEnd; formatC += 1) {
-                    GSHL_DArray_append(string, *formatC);
-                }
-
-                formatC = formatEnd - 1;
-                continue;
-            }
-
-            GSHL_FormatSpecifier fs = *(GSHL_FormatSpecifier *)valueP->opaque;
-
-            switch (fs.va_size) {
-            case 4:
-                fs.value.u32 = va_arg(args, u32);
-                break;
-            case 8:
-                fs.value.u64 = va_arg(args, u64);
-                break;
-            default:
-                GSHL_UNREACHABLE("Wrong fs->va_size = %lu", fs.va_size);
-                break;
-            }
-
-            fs.write(string, &fs);
-
-            formatC = formatEnd - 1;
-        }
-    }
-
-    GSHL_ASSERT(format <= formatEnd);
-
-    return (usize)(formatEnd - format);
-}
-
 char *GSHL_format(const char *const restrict format, ...)
 {
     va_list args;
@@ -304,98 +133,6 @@ char *GSHL_formatv(const char *const restrict format, va_list args)
     const GSHL_StringView view = GSHL_format_wrapperv(format, args);
 
     return GSHL_string_dup(view.start);
-}
-
-static int GSHL_compare_strings(const void *a, const void *b)
-{
-    return strcmp(*(const char **)a, *(const char **)b);
-}
-
-void GSHL_print_registered_format_specifiers(void)
-{
-#if 0
-    GSHL_HashTable_print(
-        GSHL_format_ht, "%lu", usize, "%p", opaque,
-        "FormatSpecifier {\n"
-        "    .kind = %u\n"
-        "    .write = %p\n"
-        "    .va_size = %lu\n"
-        "    .type_string = %s\n"
-        "  }",
-        ((GSHL_FormatSpecifier *)current->value.opaque)->kind,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->write,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->va_size,
-        ((GSHL_FormatSpecifier *)current->value.opaque)->type_string);
-#else
-    GSHL_DArrayTypeDecl(GSHL_FSS, const char *);
-    GSHL_FSS fss = {};
-    GSHL_DArray_init(&fss);
-
-    GSHL_ARRAYN_FOREACH(GSHL_format_ht.table, GSHL_format_ht.table_size,
-                        GSHL_HashTableEntry * entry)
-    {
-        for (const GSHL_HashTableEntry *current = entry; current != NULL;
-             current = current->next) {
-            const GSHL_FormatSpecifier *fs = current->value.opaque;
-            GSHL_ARRAY_FOREACH(fs->specifiers, char *specifier)
-            {
-                if (specifier == NULL || specifier[0] == '\0') {
-                    break;
-                }
-
-                // printf(GSHL_FG_CYAN("%s") "\n", specifier);
-                GSHL_DArray_append(&fss, specifier);
-            }
-        }
-    }
-
-    qsort(fss.items, fss.count, sizeof(fss.items[0]), GSHL_compare_strings);
-    const char *unique_fs = NULL;
-    GSHL_ARRAYN_FOREACH(fss.items, fss.count, char *const fs)
-    {
-        if (unique_fs != NULL && strcmp(unique_fs, fs) == 0) {
-            continue;
-        }
-
-        printf(GSHL_FG_CYAN("%s") "\n", fs);
-        unique_fs = fs;
-    }
-
-    GSHL_DArray_destroy(&fss);
-#endif
-}
-
-bool GSHL_format_specifier_register(const GSHL_FormatSpecifier fs)
-{
-    static __thread GSHL_FormatSpecifiers format_specifiers = {};
-
-    GSHL_DArray_append(&format_specifiers, fs);
-
-    GSHL_ARRAY_FOREACH(fs.specifiers, char *specifier)
-    {
-        if (specifier == NULL || specifier[0] == '\0') {
-            break;
-        }
-
-        const char *const start = specifier;
-        const char *const end = specifier + strlen(specifier);
-        const usize hash = GSHL_hash_format_specifier(start, end, NULL);
-        if (GSHL_HashTable_search(&GSHL_format_ht, .usize = hash) != NULL) {
-#ifdef GSHL_DEBUG
-            GSHL_dprintln(STDERR_FILENO,
-                          "Format Specifier already registered: %s", specifier);
-#endif
-            continue;
-        }
-
-        GSHL_ASSERT(fs.va_size % 4 == 0);
-
-        GSHL_HashTable_insert(
-            &GSHL_format_ht, .usize = hash,
-            .opaque = &format_specifiers.items[format_specifiers.count - 1]);
-    }
-
-    return true;
 }
 
 #ifdef GSHL_TESTS

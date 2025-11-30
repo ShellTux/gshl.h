@@ -2,7 +2,8 @@
 
 #include "ansi/colors.h"
 #include "array/mod.h"
-#include "format/mod.h"
+#include "format/register.h"
+#include "format/write.h"
 #include "macros/mod.h"
 #include "math/mod.h"
 #include "print/mod.h"
@@ -114,7 +115,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
 
     GSHL_ASSERT(log_config.fd > 0);
 
-    GSHL_format_specifier_register((GSHL_FormatSpecifier){
+    GSHL_format_specifiers_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_U32,
         .va_size = sizeof(GSHL_LogKind),
         .write = write_enum_LogKind,
@@ -122,7 +123,7 @@ void GSHL_log_init_wrapper(const GSHL_LogConfig config)
                        "LogKind"},
     });
 
-    GSHL_format_specifier_register((GSHL_FormatSpecifier){
+    GSHL_format_specifiers_register((GSHL_FormatSpecifier){
         .kind = GSHL_FORMAT_SPECIFIER_POINTER,
         .va_size = sizeof(GSHL_LogConfig *),
         .write = write_struct_LogConfig,

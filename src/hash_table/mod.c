@@ -108,6 +108,17 @@ bool GSHL_HashTable_destroy(GSHL_HashTable *ht)
     return true;
 }
 
+void GSHL_HashTable_resize(GSHL_HashTable *ht)
+{
+    if (ht->load_factor < .75f) {
+        return;
+    }
+
+    while (ht->load_factor >= .25f) {
+        GSHL_TODO("Unimplemented: %s", __FUNCTION__);
+    }
+}
+
 #ifdef GSHL_TESTS
 #    include "test/mod.h"
 

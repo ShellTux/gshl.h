@@ -2,7 +2,7 @@
 #ifndef INCLUDE_NET_IP_H_
 #define INCLUDE_NET_IP_H_
 
-#include "format/mod.h"
+#include "format/register.h"
 #include "types/mod.h"
 
 /// {{{ Types

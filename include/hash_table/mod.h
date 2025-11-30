@@ -98,6 +98,7 @@ typedef struct GSHL_HashTableEntry {
     } value;
     // Pointer to the next entry for collision resolution
     struct GSHL_HashTableEntry *next;
+    void (*free_element)(void *);
 } GSHL_HashTableEntry;
 
 typedef union GSHL_HashTableKey GSHL_HashTableKey;
@@ -109,6 +110,7 @@ typedef struct GSHL_HashTable {
     GSHL_HashTableEntry **table;
     usize table_size;
     GSHL_HashTableHashFunction *hash;
+    f32 load_factor;
     char *description;
     char *key_type;
     char *value_type;

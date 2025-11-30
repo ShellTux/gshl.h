@@ -1,5 +1,6 @@
 #include "format/bool.h"
 
+#include "dynamic_array/mod.h"
 #include "macros/mod.h"
 #include "string/mod.h"
 

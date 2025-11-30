@@ -1,7 +1,7 @@
 #ifndef INCLUDE_FORMAT_I16_H_
 #define INCLUDE_FORMAT_I16_H_
 
-#include "format/mod.h"
+#include "format/register.h"
 
 /// {{{ Functions
 

@@ -1,7 +1,6 @@
 #ifndef INCLUDE_NET_SOCKET_ADDR_H_
 #define INCLUDE_NET_SOCKET_ADDR_H_
 
-#include "format/mod.h"
 #include "types/mod.h"
 
 #include "ip.h"
