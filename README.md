@@ -108,9 +108,11 @@ int main(void)
     println("NULL = {pointer}", NULL);
 
     int var;
-    println("&var = %p %u", &var, -34);
+    println("&var = %p", &var);
 
     println("{string} %s", "Hello", "world!");
+
+    println("🤣 💀 💩 🤡 🗿");
 
     return 0;
 }
