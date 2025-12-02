@@ -5,22 +5,30 @@
 
 /// {{{ Macros
 
+#define GSHL_Array(T, ...) __typeof__(T[__VA_ARGS__])
+
 #define GSHL_ARRAYN_PRINT(ARRAY, N, ELEMENT_FORMAT, ...)                       \
     do {                                                                       \
         struct GSHL_ArrayPrintOpts opts = {__VA_ARGS__};                       \
         opts.sep = opts.sep ? opts.sep : ", ";                                 \
         opts.end = opts.end ? opts.end : "\n";                                 \
         opts.array_limits = opts.array_limits ? opts.array_limits : "{}";      \
-        printf("%s[%zu] = %c ", #ARRAY, N, opts.array_limits[0]);              \
-        for (usize array_index = 0; array_index < N; ++array_index) {          \
+        GSHL_FormatString string = {};                                         \
+        GSHL_format_write(&string, "%s[%lu] = %c ", #ARRAY, (usize)(N),        \
+                          opts.array_limits[0]);                               \
+        for (usize array_index = 0; array_index < (N); ++array_index) {        \
             if (array_index == 0) {                                            \
-                printf(ELEMENT_FORMAT, ARRAY[array_index]);                    \
+                GSHL_format_write(&string, ELEMENT_FORMAT,                     \
+                                  (ARRAY)[array_index]);                       \
             }                                                                  \
             else {                                                             \
-                printf("%s" ELEMENT_FORMAT, opts.sep, ARRAY[array_index]);     \
+                GSHL_format_write(&string, "%s" ELEMENT_FORMAT, opts.sep,      \
+                                  (ARRAY)[array_index]);                       \
             }                                                                  \
         }                                                                      \
-        printf(" %c%s", opts.array_limits[1], opts.end);                       \
+        GSHL_format_write(&string, " %c%s", opts.array_limits[1], opts.end);   \
+        assert(write(STDOUT_FILENO, string.items, string.count) > 0);          \
+        GSHL_DArray_destroy(&string);                                          \
     } while (0)
 #define GSHL_ARRAYN_FOREACH(ARRAY, N, VARDECL, ...)                            \
     for (usize keep = 1, index = 0, size = (N); keep && index < size;          \
@@ -64,6 +72,7 @@ typedef struct GSHL_ArrayForEachOpts {
 /// {{{ Strip Prefix
 
 #ifdef GSHL_STRIP_PREFIX
+#    define Array GSHL_Array
 #    define ARRAY_LEN GSHL_ARRAY_LEN
 #    define ARRAY_PRINT GSHL_ARRAY_PRINT
 #    define ARRAY_FOREACH GSHL_ARRAY_FOREACH

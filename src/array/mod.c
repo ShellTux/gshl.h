@@ -42,4 +42,15 @@ GSHL_TEST(array)
     free(array.items);
 }
 
+GSHL_TEST(array_decl)
+{
+    GSHL_Array(i32, 3) a = {1, 2};
+
+    GSHL_TEST_EQUAL(GSHL_ARRAY_LEN(a), 3);
+
+    GSHL_TEST_EQUAL(a[0], 1);
+    GSHL_TEST_EQUAL(a[1], 2);
+    GSHL_TEST_EQUAL(a[2], 0);
+}
+
 #endif
