@@ -2,6 +2,8 @@
 #ifndef INCLUDE_DYNAMIC_ARRAY_MOD_H_
 #define INCLUDE_DYNAMIC_ARRAY_MOD_H_
 
+#include "stdlib/mod.h" // IWYU pragma: keep
+
 /// {{{ Macros
 
 #ifndef GSHL_DARRAY_INIT_CAPACITY

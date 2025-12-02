@@ -3,9 +3,6 @@
 #include "format/mod.h"
 #include "hash_table/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 extern __thread GSHL_HashTable GSHL_format_ht;
 
 usize GSHL_format_write(GSHL_FormatString *string,

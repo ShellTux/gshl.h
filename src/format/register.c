@@ -22,11 +22,6 @@
 #include "hash_table/mod.h"
 #include "print/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 __thread GSHL_HashTable GSHL_format_ht = {};
 __thread GSHL_FormatSpecifiers GSHL_format_specifiers = {};
 

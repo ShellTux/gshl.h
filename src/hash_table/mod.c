@@ -1,10 +1,6 @@
 #include "hash_table/mod.h"
 #include "macros/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
 bool GSHL_HashTable_insert_wrapper(GSHL_HashTable *ht,
                                    const GSHL_HashTableKey key,
                                    const GSHL_HashTableValue value)

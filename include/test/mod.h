@@ -2,13 +2,9 @@
 #ifndef INCLUDE_TEST_MOD_H_
 #define INCLUDE_TEST_MOD_H_
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>  // IWYU pragma: keep
-#include <string.h> // IWYU pragma: keep
-
 #include "ansi/colors.h"
 #include "macros/mod.h"
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
 
 /// {{{ Macros

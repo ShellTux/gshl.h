@@ -3,10 +3,8 @@
 
 #include "format/mod.h"
 #include "format/register.h"
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
-
-#include <pthread.h>
-#include <stdarg.h>
 
 /// {{{ Types
 

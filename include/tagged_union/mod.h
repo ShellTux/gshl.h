@@ -2,6 +2,7 @@
 #define INCLUDE_TAGGED_UNION_MOD_H_
 
 #include "macros/mod.h"
+#include "stdlib/mod.h" // IWYU pragma: keep
 
 #define __ENUM_NAME(NAME) NAME##Tag
 #define __ENUM_VAL(NAME) __ENUM_NAME(NAME),

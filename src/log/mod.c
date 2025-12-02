@@ -8,12 +8,6 @@
 #include "math/mod.h"
 #include "print/mod.h"
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 static GSHL_LogConfig log_config = {
     .fd = STDERR_FILENO,
     .mask = GSHL_LOG_ALL,

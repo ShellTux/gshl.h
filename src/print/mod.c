@@ -2,16 +2,9 @@
 #include "format/mod.h"
 #include "string/mod.h"
 
-#include <stdarg.h>
-#include <unistd.h>
-
 #ifdef GSHL_GLOBAL_FORMAT_STRING
 #    include "array/mod.h"
 #    include "macros/mod.h"
-
-#    include <assert.h>
-#    include <stdlib.h>
-#    include <string.h>
 
 static GSHL_GlobalFormatString global_string = {};
 

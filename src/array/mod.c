@@ -1,6 +1,5 @@
 #include "array/mod.h"
 #include "types/mod.h"
-#include <stdlib.h>
 
 #ifdef GSHL_TESTS
 

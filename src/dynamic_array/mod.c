@@ -2,9 +2,6 @@
 
 #include "array/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 #ifdef GSHL_TESTS
 #    include "test/mod.h"
 

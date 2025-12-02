@@ -5,10 +5,6 @@
 #include "string/mod.h"
 #include "types/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
 usize GSHL_write_pointer(GSHL_FormatString *string,
                          const GSHL_FormatSpecifier *fs)
 {

@@ -2,6 +2,7 @@
 #ifndef INCLUDE_FORMAT_REGISTER_H_
 #define INCLUDE_FORMAT_REGISTER_H_
 
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
 
 #include "dynamic_array/mod.h"

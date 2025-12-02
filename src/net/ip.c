@@ -4,8 +4,6 @@
 #include "format/write.h"
 #include "types/mod.h"
 
-#include <assert.h>
-
 usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
                           const GSHL_FormatSpecifier *fs)
 {

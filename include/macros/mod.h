@@ -1,8 +1,8 @@
-// gshl-priority: 99
+// gshl-priority: 98
 #ifndef INCLUDE_MACROS_MOD_H_
 #define INCLUDE_MACROS_MOD_H_
 
-#include <stdio.h> // IWYU pragma: keep
+#include "stdlib/mod.h" // IWYU pragma: keep
 
 #ifndef GSHLDEF
 #    define GSHLDEF

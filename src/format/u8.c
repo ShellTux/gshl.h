@@ -5,9 +5,6 @@
 #include "macros/mod.h"
 #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_u8(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_U8);

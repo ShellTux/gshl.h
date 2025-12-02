@@ -1,6 +1,4 @@
 #include "string/mod.h"
-#include <stdlib.h>
-#include <string.h>
 
 char *GSHL_string_dup(const char *const source)
 {

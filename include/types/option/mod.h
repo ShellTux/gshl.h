@@ -1,7 +1,8 @@
 #ifndef INCLUDE_OPTION_MOD_H_
 #define INCLUDE_OPTION_MOD_H_
 
-#include "types/mod.h"
+#include "stdlib/mod.h"
+#include "types/mod.h" // IWYU pragma: keep
 
 #define Option(TYPE) Option_##TYPE
 #define None(TYPE)                                                             \

@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #define GSHL_IMPLEMENTATION
 #define GSHL_STRIP_PREFIX
 #undef GSHL_TESTS

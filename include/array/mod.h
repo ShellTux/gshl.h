@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ARRAY_MOD_H_
 #define INCLUDE_ARRAY_MOD_H_
 
+#include "stdlib/mod.h"
 #include "types/mod.h"
 
 /// {{{ Macros

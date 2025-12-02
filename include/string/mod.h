@@ -2,6 +2,7 @@
 #ifndef INCLUDE_STRING_MOD_H_
 #define INCLUDE_STRING_MOD_H_
 
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
 
 /// {{{ Macros

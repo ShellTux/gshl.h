@@ -2,8 +2,6 @@
 #define GSHL_STRIP_PREFIX
 #include "../gshl.h"
 
-#include <fcntl.h>
-
 int main(void)
 {
     // NOTE: GSHL_LOG environment variable can be used to provide the verbosity

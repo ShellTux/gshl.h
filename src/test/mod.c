@@ -2,11 +2,6 @@
 #include "macros/mod.h"
 #include "types/mod.h"
 
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 static GSHL_Test *GSHL_test_list = NULL;
 
 GSHLDEF usize GSHL_run_tests(const char *filter)

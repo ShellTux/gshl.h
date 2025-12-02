@@ -4,9 +4,8 @@
 
 #include "format/register.h"
 
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
-
-#include <stdarg.h>
 
 /// {{{ Functions
 

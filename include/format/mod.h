@@ -2,10 +2,8 @@
 #ifndef INCLUDE_FORMAT_MOD_H_
 #define INCLUDE_FORMAT_MOD_H_
 
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "string/mod.h"
-
-#include <stdarg.h>
-#include <stddef.h>
 
 /// {{{ Functions
 

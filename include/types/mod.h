@@ -3,9 +3,7 @@
 #define INCLUDE_TYPES_MOD_H_
 
 #include "macros/mod.h"
-
-#include <stdbool.h>
-#include <stdint.h>
+#include "stdlib/mod.h" // IWYU pragma: keep
 
 /// {{{ Macros
 

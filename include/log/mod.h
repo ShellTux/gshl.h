@@ -2,9 +2,8 @@
 #define INCLUDE_LOG_MOD_H_
 
 #include "format/mod.h"
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
-
-#include <stdarg.h>
 
 /// {{{ Macros
 

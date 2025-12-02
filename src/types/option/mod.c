@@ -1,10 +1,7 @@
 #include "types/option/mod.h"
 
-#include "format/write.h"
+#include "format/write.h" // IWYU pragma: keep
 #include "print/mod.h"
-
-#include <stdlib.h>
-#include <unistd.h>
 
 #define GSHL_TYPE(ALIAS, TYPE) OptionDecl(ALIAS);
 GSHL_TYPES

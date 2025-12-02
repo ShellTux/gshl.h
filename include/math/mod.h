@@ -1,6 +1,7 @@
 #ifndef INCLUDE_MATH_MOD_H_
 #define INCLUDE_MATH_MOD_H_
 
+#include "stdlib/mod.h" // IWYU pragma: keep
 #include "types/mod.h"
 
 /// {{{ Functions

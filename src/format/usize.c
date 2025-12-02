@@ -7,9 +7,6 @@
 #include "macros/mod.h"
 #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_usize(GSHL_FormatString *string,
                        const GSHL_FormatSpecifier *fs)
 {

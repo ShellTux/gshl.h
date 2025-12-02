@@ -3,13 +3,6 @@
 #include "format/write.h"
 #include "types/mod.h"
 
-#include <arpa/inet.h>
-#include <assert.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 usize GSHL_write_SocketAddrV4(GSHL_FormatString *string,
                               const GSHL_FormatSpecifier *fs)
 {
