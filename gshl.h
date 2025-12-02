@@ -370,7 +370,12 @@ typedef GSHL_HashTableValue HashTableValue;
         TYPE *items;                                                           \
     } NAME
 
-#define GSHL_DArray_init(DARRAY) (DARRAY)->size = 0
+#define GSHL_DArray_init(DARRAY, ...)                                          \
+    do {                                                                       \
+        (DARRAY)->count = 0;                                                   \
+        __typeof__(*(DARRAY)->items) new_items[] = {__VA_ARGS__};              \
+        GSHL_DArray_extend(DARRAY, new_items);                                 \
+    } while (0)
 
 #define GSHL_DArray_append(DARRAY, ITEM)                                       \
     do {                                                                       \
@@ -398,6 +403,10 @@ typedef GSHL_HashTableValue HashTableValue;
 
 #define GSHL_DArray_extendn(DARRAY, ITEMS, ITEMS_N)                            \
     do {                                                                       \
+        if ((ITEMS_N) == 0 || (ITEMS) == NULL) {                               \
+            break;                                                             \
+        }                                                                      \
+                                                                               \
         if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \
@@ -3306,6 +3315,7 @@ GSHL_TEST(write_pointer)
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 usize GSHL_hash_format_specifier(const char *const start, const char *const end,

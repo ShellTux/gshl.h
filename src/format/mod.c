@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 usize GSHL_hash_format_specifier(const char *const start, const char *const end,

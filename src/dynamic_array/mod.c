@@ -98,6 +98,16 @@ GSHL_TEST(da)
     GSHL_TEST_EQUAL(da.items[5], -3);
 
     GSHL_DArray_destroy(&da);
+
+    GSHL_DArray_init(&da, 1, 2, 3);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.count, 3);
+    GSHL_TEST_EQUAL(da.items[0], 1);
+    GSHL_TEST_EQUAL(da.items[1], 2);
+    GSHL_TEST_EQUAL(da.items[2], 3);
+
+    GSHL_DArray_destroy(&da);
 }
 
 #endif

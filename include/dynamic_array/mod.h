@@ -24,7 +24,12 @@
         TYPE *items;                                                           \
     } NAME
 
-#define GSHL_DArray_init(DARRAY) (DARRAY)->size = 0
+#define GSHL_DArray_init(DARRAY, ...)                                          \
+    do {                                                                       \
+        (DARRAY)->count = 0;                                                   \
+        const __typeof__(*(DARRAY)->items) new_items[] = {__VA_ARGS__};        \
+        GSHL_DArray_extend(DARRAY, new_items);                                 \
+    } while (0)
 
 #define GSHL_DArray_append(DARRAY, ITEM)                                       \
     do {                                                                       \
@@ -52,6 +57,10 @@
 
 #define GSHL_DArray_extendn(DARRAY, ITEMS, ITEMS_N)                            \
     do {                                                                       \
+        if ((ITEMS_N) == 0 || (ITEMS) == NULL) {                               \
+            break;                                                             \
+        }                                                                      \
+                                                                               \
         if (GSHL_unlikely((DARRAY)->items == NULL)) {                          \
             (DARRAY)->capacity = GSHL_DARRAY_INIT_CAPACITY;                    \
             (DARRAY)->items =                                                  \

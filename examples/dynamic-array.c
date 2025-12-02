@@ -7,6 +7,19 @@ typedef struct Person {
     u8 age;
 } Person;
 
+// How to print person using GSHL_println
+usize write_Person(FormatString *string, const FormatSpecifier *fs)
+{
+    const Person *person = fs->value.pointer;
+
+    return format_write(string, "Person {{ .name = \"%s\", .age = {u8} }}",
+                        person->name, person->age);
+}
+
+FORMAT_SPECIFIER_REGISTER(Person, .kind = GSHL_FORMAT_SPECIFIER_POINTER,
+                          .va_size = sizeof(Person *), .write = write_Person,
+                          .specifiers = {"Person"});
+
 Person random_person(void)
 {
     static const char *names[] = {
@@ -900,20 +913,42 @@ int main(void)
 
         ARRAYN_FOREACH(people.items, people.count, Person person)
         {
-            printf("Person { name: \"%s\", age: %u }\n", person.name,
-                   person.age);
+            println("{Person}", &person);
         }
 
-        printf("\n");
         DArray_remove(&people, 2);
+
+        println("");
 
         ARRAYN_FOREACH(people.items, people.count, Person person)
         {
-            printf("Person { name: \"%s\", age: %u }\n", person.name,
-                   person.age);
+            println("{Person}", &person);
         }
 
         DArray_destroy(&people);
+    }
+
+    println("");
+
+    {
+        // You don't need DArrayTypeDecl macro, as long as your dynamic array
+        // has these members: items, count, capacity
+        typedef struct {
+            i32 *items;
+            usize count;
+            usize capacity;
+        } Numbers;
+
+        Numbers numbers = {};
+        // You can initialize your dynamic array with some values
+        DArray_init(&numbers, 1, 2, 3, 4, 5);
+
+        ARRAYN_FOREACH(numbers.items, numbers.count, i32 n)
+        {
+            println("numbers[%lu] = %i", index, n);
+        }
+
+        DArray_destroy(&numbers);
     }
 
     return 0;
