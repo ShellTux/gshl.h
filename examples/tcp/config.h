@@ -1,0 +1,7 @@
+#ifndef INCLUDE_TCP_CONFIG_H_
+#define INCLUDE_TCP_CONFIG_H_
+
+#define PORT 8080
+#define BUFFER_SIZE 4096
+
+#endif // INCLUDE_TCP_CONFIG_H_
