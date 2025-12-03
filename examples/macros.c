@@ -1,5 +1,3 @@
-
-
 #define GSHL_STRIP_PREFIX
 #include "../gshl.h"
 

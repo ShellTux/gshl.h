@@ -97,6 +97,11 @@
 #    define GSHL_Nonnull
 #endif
 
+// https://stackoverflow.com/a/34893039
+#define GSHL_weak_alias(name, aliasname) _GSHL_weak_alias(name, aliasname)
+#define _GSHL_weak_alias(name, aliasname)                                      \
+    extern __typeof(name) aliasname __attribute__((weak, alias(#name)));
+
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
 #    define loop GSHL_LOOP
@@ -108,6 +113,7 @@
 #    define NODISCARD GSHL_NODISCARD
 #    define Nullable GSHL_Nullable
 #    define Nonnull GSHL_Nonnull
+#    define weak_alias GSHL_weak_alias
 #endif
 
 #endif // INCLUDE_MACROS_MOD_H_
