@@ -5,7 +5,7 @@
 #ifdef GSHL_TESTS
 #    include "test/mod.h"
 
-GSHL_DArrayTypeDecl(DArray, int);
+typedef GSHL_DArrayTypeDecl(DArray, int) DArray;
 
 GSHL_TEST(da)
 {

@@ -15,7 +15,7 @@
 #endif
 
 #define GSHL_DArrayTypeDecl(NAME, TYPE)                                        \
-    typedef struct NAME {                                                      \
+    struct NAME {                                                              \
         union {                                                                \
             usize size;                                                        \
             usize count;                                                       \
@@ -24,7 +24,7 @@
         };                                                                     \
         usize capacity;                                                        \
         TYPE *items;                                                           \
-    } NAME
+    }
 
 #define GSHL_DArray_init(DARRAY, ...)                                          \
     do {                                                                       \
@@ -109,6 +109,10 @@
         (DARRAY)->count--;                                                     \
     } while (0)
 
+#define GSHL_DArray_print(DARRAY, ELEMENT_FORMAT, ...)                         \
+    GSHL_ARRAYN_PRINT((DARRAY).items, (DARRAY).count, ELEMENT_FORMAT,          \
+                      __VA_ARGS__)
+
 #define GSHL_DArray_destroy(DARRAY)                                            \
     do {                                                                       \
         free((DARRAY)->items);                                                 \
@@ -124,6 +128,7 @@
 #    define DArray_insert GSHL_DArray_insert
 #    define DArray_remove GSHL_DArray_remove
 #    define DArray_destroy GSHL_DArray_destroy
+#    define DArray_print GSHL_DArray_print
 #endif
 
 #endif // INCLUDE_DYNAMIC_ARRAY_MOD_H_

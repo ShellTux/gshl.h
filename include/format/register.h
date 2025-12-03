@@ -48,7 +48,7 @@
 
 /// {{{ Types
 
-GSHL_DArrayTypeDecl(GSHL_FormatString, char);
+typedef GSHL_DArrayTypeDecl(GSHL_FormatString, char) GSHL_FormatString;
 
 typedef enum GSHL_FormatSpecifierKind {
     GSHL_FORMAT_SPECIFIER_NONE = 0,
@@ -86,7 +86,8 @@ struct GSHL_FormatSpecifier {
                    [GSHL_FORMAT_SPECIFIER_MAX_LEN];
 };
 
-GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers, GSHL_FormatSpecifier);
+typedef GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers,
+                            GSHL_FormatSpecifier) GSHL_FormatSpecifiers;
 
 /// }}}
 

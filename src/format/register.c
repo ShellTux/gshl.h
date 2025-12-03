@@ -34,7 +34,7 @@ static usize GSHL_hash_idem(const GSHL_HashTableKey key) { return key.usize; }
 
 void GSHL_format_specifiers_print(void)
 {
-    GSHL_DArrayTypeDecl(GSHL_FSS, const char *);
+    typedef GSHL_DArrayTypeDecl(GSHL_FSS, const char *) GSHL_FSS;
     GSHL_FSS fss = {};
     GSHL_DArray_init(&fss);
 

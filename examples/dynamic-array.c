@@ -889,11 +889,7 @@ Person random_person(void)
     };
 }
 
-#define GSHL_DArray_print(DARRAY, ELEMENT_FORMAT, ...)                         \
-    GSHL_ARRAYN_PRINT((DARRAY).items, (DARRAY).count, ELEMENT_FORMAT,          \
-                      __VA_ARGS__);
-
-DArrayTypeDecl(People, Person);
+typedef DArrayTypeDecl(People, Person) People;
 
 int main(void)
 {
@@ -943,10 +939,7 @@ int main(void)
         // You can initialize your dynamic array with some values
         DArray_init(&numbers, 1, 2, 3, 4, 5);
 
-        ARRAYN_FOREACH(numbers.items, numbers.count, i32 n)
-        {
-            println("numbers[%lu] = %i", index, n);
-        }
+        DArray_print(numbers, "%i");
 
         DArray_destroy(&numbers);
     }
