@@ -1,10 +1,29 @@
 #ifndef INCLUDE_GSHL_H_
 #define INCLUDE_GSHL_H_
 // gshl-priority: 99
+// #ifndef INCLUDE_INCLUDE_STDLIB_H_
+// #define INCLUDE_INCLUDE_STDLIB_H_
+
+#include <arpa/inet.h>  // IWYU pragma: keep
+#include <assert.h>     // IWYU pragma: keep
+#include <fcntl.h>      // IWYU pragma: keep
+#include <pthread.h>    // IWYU pragma: keep
+#include <stdarg.h>     // IWYU pragma: keep
+#include <stdbool.h>    // IWYU pragma: keep
+#include <stdint.h>     // IWYU pragma: keep
+#include <stdio.h>      // IWYU pragma: keep
+#include <stdlib.h>     // IWYU pragma: keep
+#include <string.h>     // IWYU pragma: keep
+#include <sys/socket.h> // IWYU pragma: keep
+#include <sys/stat.h>   // IWYU pragma: keep
+#include <unistd.h>     // IWYU pragma: keep
+
+// #endif // INCLUDE_INCLUDE_STDLIB_H_
+// gshl-priority: 98
 // #ifndef INCLUDE_MACROS_MOD_H_
 // #define INCLUDE_MACROS_MOD_H_
 
-#include <stdio.h> // IWYU pragma: keep
+// #include "stdlib/mod.h" // IWYU pragma: keep
 
 #ifndef GSHLDEF
 #    define GSHLDEF
@@ -99,6 +118,11 @@
 #    define GSHL_Nonnull
 #endif
 
+// https://stackoverflow.com/a/34893039
+#define GSHL_weak_alias(name, aliasname) _GSHL_weak_alias(name, aliasname)
+#define _GSHL_weak_alias(name, aliasname)                                      \
+    extern __typeof(name) aliasname __attribute__((weak, alias(#name)));
+
 #ifdef GSHL_STRIP_PREFIX
 #    define ASSERT GSHL_ASSERT
 #    define loop GSHL_LOOP
@@ -110,6 +134,7 @@
 #    define NODISCARD GSHL_NODISCARD
 #    define Nullable GSHL_Nullable
 #    define Nonnull GSHL_Nonnull
+#    define weak_alias GSHL_weak_alias
 #endif
 
 // #endif // INCLUDE_MACROS_MOD_H_
@@ -118,9 +143,7 @@
 // #define INCLUDE_TYPES_MOD_H_
 
 // #include "macros/mod.h"
-
-#include <stdbool.h>
-#include <stdint.h>
+// #include "stdlib/mod.h" // IWYU pragma: keep
 
 /// {{{ Macros
 
@@ -154,6 +177,7 @@ GSHL_TYPES
 // #ifndef INCLUDE_STRING_MOD_H_
 // #define INCLUDE_STRING_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 /// {{{ Macros
@@ -197,6 +221,7 @@ void GSHL_string_reverse(char *start, char *end);
 // #ifndef INCLUDE_HASH_TABLE_MOD_H_
 // #define INCLUDE_HASH_TABLE_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 #ifndef GSHL_HASH_TABLE_SIZE
@@ -348,6 +373,8 @@ typedef GSHL_HashTableValue HashTableValue;
 // #ifndef INCLUDE_DYNAMIC_ARRAY_MOD_H_
 // #define INCLUDE_DYNAMIC_ARRAY_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
+
 /// {{{ Macros
 
 #ifndef GSHL_DARRAY_INIT_CAPACITY
@@ -359,7 +386,7 @@ typedef GSHL_HashTableValue HashTableValue;
 #endif
 
 #define GSHL_DArrayTypeDecl(NAME, TYPE)                                        \
-    typedef struct NAME {                                                      \
+    struct NAME {                                                              \
         union {                                                                \
             usize size;                                                        \
             usize count;                                                       \
@@ -368,12 +395,12 @@ typedef GSHL_HashTableValue HashTableValue;
         };                                                                     \
         usize capacity;                                                        \
         TYPE *items;                                                           \
-    } NAME
+    }
 
 #define GSHL_DArray_init(DARRAY, ...)                                          \
     do {                                                                       \
         (DARRAY)->count = 0;                                                   \
-        __typeof__(*(DARRAY)->items) new_items[] = {__VA_ARGS__};              \
+        const __typeof__(*(DARRAY)->items) new_items[] = {__VA_ARGS__};        \
         GSHL_DArray_extend(DARRAY, new_items);                                 \
     } while (0)
 
@@ -453,6 +480,10 @@ typedef GSHL_HashTableValue HashTableValue;
         (DARRAY)->count--;                                                     \
     } while (0)
 
+#define GSHL_DArray_print(DARRAY, ELEMENT_FORMAT, ...)                         \
+    GSHL_ARRAYN_PRINT((DARRAY).items, (DARRAY).count, ELEMENT_FORMAT,          \
+                      __VA_ARGS__)
+
 #define GSHL_DArray_destroy(DARRAY)                                            \
     do {                                                                       \
         free((DARRAY)->items);                                                 \
@@ -468,6 +499,7 @@ typedef GSHL_HashTableValue HashTableValue;
 #    define DArray_insert GSHL_DArray_insert
 #    define DArray_remove GSHL_DArray_remove
 #    define DArray_destroy GSHL_DArray_destroy
+#    define DArray_print GSHL_DArray_print
 #endif
 
 // #endif // INCLUDE_DYNAMIC_ARRAY_MOD_H_
@@ -475,10 +507,8 @@ typedef GSHL_HashTableValue HashTableValue;
 // #ifndef INCLUDE_FORMAT_MOD_H_
 // #define INCLUDE_FORMAT_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "string/mod.h"
-
-#include <stdarg.h>
-#include <stddef.h>
 
 /// {{{ Functions
 
@@ -507,6 +537,7 @@ GSHL_NODISCARD char *GSHL_formatv(const char *const restrict format,
 // #ifndef INCLUDE_FORMAT_REGISTER_H_
 // #define INCLUDE_FORMAT_REGISTER_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 // #include "dynamic_array/mod.h"
@@ -552,7 +583,7 @@ GSHL_NODISCARD char *GSHL_formatv(const char *const restrict format,
 
 /// {{{ Types
 
-GSHL_DArrayTypeDecl(GSHL_FormatString, char);
+typedef GSHL_DArrayTypeDecl(GSHL_FormatString, char) GSHL_FormatString;
 
 typedef enum GSHL_FormatSpecifierKind {
     GSHL_FORMAT_SPECIFIER_NONE = 0,
@@ -590,7 +621,8 @@ struct GSHL_FormatSpecifier {
                    [GSHL_FORMAT_SPECIFIER_MAX_LEN];
 };
 
-GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers, GSHL_FormatSpecifier);
+typedef GSHL_DArrayTypeDecl(GSHL_FormatSpecifiers,
+                            GSHL_FormatSpecifier) GSHL_FormatSpecifiers;
 
 /// }}}
 
@@ -643,9 +675,8 @@ typedef GSHL_Ipv4Addr Ipv4Addr;
 
 // #include "format/register.h"
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
-
-#include <stdarg.h>
 
 /// {{{ Functions
 
@@ -660,7 +691,8 @@ usize GSHL_format_writev(GSHL_FormatString *string,
 // #ifndef INCLUDE_OPTION_MOD_H_
 // #define INCLUDE_OPTION_MOD_H_
 
-// #include "types/mod.h"
+// #include "stdlib/mod.h"
+// #include "types/mod.h" // IWYU pragma: keep
 
 #define Option(TYPE) Option_##TYPE
 #define None(TYPE)                                                             \
@@ -780,13 +812,9 @@ bool Option_is_some_or_panic(const enum OptionVariants variant,
 // #ifndef INCLUDE_TEST_MOD_H_
 // #define INCLUDE_TEST_MOD_H_
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>  // IWYU pragma: keep
-#include <string.h> // IWYU pragma: keep
-
 // #include "ansi/colors.h"
 // #include "macros/mod.h"
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 /// {{{ Macros
@@ -921,6 +949,7 @@ GSHLDEF usize GSHL_run_tests(const char *filter);
 // #define INCLUDE_TAGGED_UNION_MOD_H_
 
 // #include "macros/mod.h"
+// #include "stdlib/mod.h" // IWYU pragma: keep
 
 #define __ENUM_NAME(NAME) NAME##Tag
 #define __ENUM_VAL(NAME) __ENUM_NAME(NAME),
@@ -968,10 +997,8 @@ case __ENUM_NAME(TAG): {                                                       \
 
 // #include "format/mod.h"
 // #include "format/register.h"
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
-
-#include <pthread.h>
-#include <stdarg.h>
 
 /// {{{ Types
 
@@ -1065,10 +1092,13 @@ typedef GSHL_SocketAddrV4 SocketAddrV4;
 // #ifndef INCLUDE_NET_MOD_H_
 // #define INCLUDE_NET_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
+
 // #endif // INCLUDE_NET_MOD_H_
 // #ifndef INCLUDE_MEM_MOD_H_
 // #define INCLUDE_MEM_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 /// {{{ Functions
@@ -1085,6 +1115,7 @@ void *GSHL_memdup(const void *const restrict source, const usize size);
 // #ifndef INCLUDE_MATH_MOD_H_
 // #define INCLUDE_MATH_MOD_H_
 
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
 
 /// {{{ Functions
@@ -1104,9 +1135,8 @@ bool GSHL_is_power_of_two(const usize number);
 // #define INCLUDE_LOG_MOD_H_
 
 // #include "format/mod.h"
+// #include "stdlib/mod.h" // IWYU pragma: keep
 // #include "types/mod.h"
-
-#include <stdarg.h>
 
 /// {{{ Macros
 
@@ -1195,8 +1225,114 @@ GSHL_LOG_VERBOSITY_LEVELS
 #endif
 
 // #endif // INCLUDE_LOG_MOD_H_
+// #ifndef INCLUDE_LINKEDLIST_MOD_H_
+// #define INCLUDE_LINKEDLIST_MOD_H_
+
+// #include "stdlib/mod.h"
+// #include "types/mod.h"
+
+typedef struct GSHL_LinkedListInfo {
+    struct {
+        usize size;
+        usize offset;
+    } node;
+    struct {
+        usize size;
+        usize offset;
+    } data;
+} GSHL_LinkedListInfo;
+
+#define GSHL_LinkedListDecl(NAME, TYPE)                                        \
+    struct NAME {                                                              \
+        struct NAME##_Node {                                                   \
+            union {                                                            \
+                TYPE data;                                                     \
+                TYPE item;                                                     \
+                TYPE value;                                                    \
+            };                                                                 \
+            struct NAME##_Node *next, *prev;                                   \
+        } *head, *tail;                                                        \
+    }
+
+// Add an element to the end of the list
+#define GSHL_LinkedList_push_back(LL, ITEM)                                    \
+    do {                                                                       \
+        void *_new_node = malloc(sizeof(*(LL)->head));                         \
+        GSHL_ASSERT(_new_node != NULL);                                        \
+                                                                               \
+        if ((LL)->tail != NULL) {                                              \
+            (LL)->tail->next = _new_node;                                      \
+            (LL)->tail->next->data = ITEM;                                     \
+            (LL)->tail->next->next = NULL;                                     \
+            (LL)->tail->next->prev = (LL)->tail;                               \
+        }                                                                      \
+        else {                                                                 \
+            (LL)->head = _new_node;                                            \
+            GSHL_ASSERT((LL)->head != NULL);                                   \
+            (LL)->head->data = ITEM;                                           \
+            (LL)->head->next = NULL;                                           \
+            (LL)->head->prev = (LL)->tail;                                     \
+        }                                                                      \
+        (LL)->tail = _new_node;                                                \
+    } while (0)
+
+// Add an element to the front of the list
+#define GSHL_LinkedList_push_front(LL, ITEM)                                   \
+    do {                                                                       \
+        void *_new_node = malloc(sizeof(*(LL)->head));                         \
+        GSHL_ASSERT(_new_node != NULL);                                        \
+                                                                               \
+        if ((LL)->head != NULL) {                                              \
+            (LL)->head->prev = _new_node;                                      \
+            (LL)->head->prev->data = ITEM;                                     \
+            (LL)->head->prev->next = (LL)->head;                               \
+            (LL)->head->prev->prev = NULL;                                     \
+        }                                                                      \
+        else {                                                                 \
+            (LL)->tail = _new_node;                                            \
+            (LL)->tail->data = ITEM;                                           \
+            (LL)->tail->next = (LL)->head;                                     \
+            (LL)->tail->prev = NULL;                                           \
+        }                                                                      \
+        (LL)->head = _new_node;                                                \
+    } while (0)
+
+#define GSHL_LinkedList_destroy(LL)                                            \
+    do {                                                                       \
+        for (__auto_type *current = (LL)->head; current != NULL;) {            \
+            __auto_type *next_node = current->next;                            \
+            free(current);                                                     \
+            current = next_node;                                               \
+        }                                                                      \
+    } while (0)
+
+#define GSHL_LinkedList_print(LL, ELEMENT_FORMAT)                              \
+    do {                                                                       \
+        GSHL_FormatString _string = {};                                        \
+        for (__auto_type *current = (LL).head; current != NULL;                \
+             current = current->next) {                                        \
+            GSHL_format_write(&_string, ELEMENT_FORMAT, current->data);        \
+            if (current->next != NULL) {                                       \
+                GSHL_format_write(&_string, " -> ");                           \
+            }                                                                  \
+        }                                                                      \
+        GSHL_format_write(&_string, "\n");                                     \
+        assert(write(STDOUT_FILENO, _string.items, _string.count) > 0);        \
+    } while (0)
+
+#ifdef GSHL_STRIP_PREFIX
+#    define LinkedListDecl GSHL_LinkedListDecl
+#    define LinkedList_push_back GSHL_LinkedList_push_back
+#    define LinkedList_push_front GSHL_LinkedList_push_front
+#    define LinkedList_destroy GSHL_LinkedList_destroy
+#    define LinkedList_print GSHL_LinkedList_print
+#endif
+
+// #endif // INCLUDE_LINKEDLIST_MOD_H_
 // #ifndef INCLUDE_HASH_MOD_H_
 // #define INCLUDE_HASH_MOD_H_
+
+// #include "stdlib/mod.h" // IWYU pragma: keep
 
 // #endif // INCLUDE_HASH_MOD_H_
 // #ifndef INCLUDE_HASH_KR_H_
@@ -1431,9 +1567,12 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_bool;
 // #ifndef INCLUDE_ARRAY_MOD_H_
 // #define INCLUDE_ARRAY_MOD_H_
 
+// #include "stdlib/mod.h"
 // #include "types/mod.h"
 
 /// {{{ Macros
+
+#define GSHL_Array(T, ...) __typeof__(T[__VA_ARGS__])
 
 #define GSHL_ARRAYN_PRINT(ARRAY, N, ELEMENT_FORMAT, ...)                       \
     do {                                                                       \
@@ -1441,16 +1580,22 @@ GSHL_FormatSpecifierWriteFunction GSHL_write_bool;
         opts.sep = opts.sep ? opts.sep : ", ";                                 \
         opts.end = opts.end ? opts.end : "\n";                                 \
         opts.array_limits = opts.array_limits ? opts.array_limits : "{}";      \
-        printf("%s[%zu] = %c ", #ARRAY, N, opts.array_limits[0]);              \
-        for (usize array_index = 0; array_index < N; ++array_index) {          \
+        GSHL_FormatString string = {};                                         \
+        GSHL_format_write(&string, "%s[%lu] = %c ", #ARRAY, (usize)(N),        \
+                          opts.array_limits[0]);                               \
+        for (usize array_index = 0; array_index < (N); ++array_index) {        \
             if (array_index == 0) {                                            \
-                printf(ELEMENT_FORMAT, ARRAY[array_index]);                    \
+                GSHL_format_write(&string, ELEMENT_FORMAT,                     \
+                                  (ARRAY)[array_index]);                       \
             }                                                                  \
             else {                                                             \
-                printf("%s" ELEMENT_FORMAT, opts.sep, ARRAY[array_index]);     \
+                GSHL_format_write(&string, "%s" ELEMENT_FORMAT, opts.sep,      \
+                                  (ARRAY)[array_index]);                       \
             }                                                                  \
         }                                                                      \
-        printf(" %c%s", opts.array_limits[1], opts.end);                       \
+        GSHL_format_write(&string, " %c%s", opts.array_limits[1], opts.end);   \
+        assert(write(STDOUT_FILENO, string.items, string.count) > 0);          \
+        GSHL_DArray_destroy(&string);                                          \
     } while (0)
 #define GSHL_ARRAYN_FOREACH(ARRAY, N, VARDECL, ...)                            \
     for (usize keep = 1, index = 0, size = (N); keep && index < size;          \
@@ -1494,6 +1639,7 @@ typedef struct GSHL_ArrayForEachOpts {
 /// {{{ Strip Prefix
 
 #ifdef GSHL_STRIP_PREFIX
+#    define Array GSHL_Array
 #    define ARRAY_LEN GSHL_ARRAY_LEN
 #    define ARRAY_PRINT GSHL_ARRAY_PRINT
 #    define ARRAY_FOREACH GSHL_ARRAY_FOREACH
@@ -1510,6 +1656,7 @@ typedef struct GSHL_ArrayForEachOpts {
 // #define INCLUDE_ANSI_MOD_H_
 
 // #include "ansi/colors.h" // IWYU pragma: export
+// #include "stdlib/mod.h"  // IWYU pragma: keep
 
 // #endif // INCLUDE_ANSI_MOD_H_
 // #ifndef INCLUDE_ANSI_COLORS_H_
@@ -1569,11 +1716,8 @@ typedef struct GSHL_ArrayForEachOpts {
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "types/option/mod.h"
 
-// #include "format/write.h"
+// #include "format/write.h" // IWYU pragma: keep
 // #include "print/mod.h"
-
-#include <stdlib.h>
-#include <unistd.h>
 
 #define GSHL_TYPE(ALIAS, TYPE) OptionDecl(ALIAS);
 GSHL_TYPES
@@ -1651,11 +1795,6 @@ GSHL_TEST(types_limits)
 // #include "macros/mod.h"
 // #include "types/mod.h"
 
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 static GSHL_Test *GSHL_test_list = NULL;
 
 GSHLDEF usize GSHL_run_tests(const char *filter)
@@ -1720,8 +1859,6 @@ int test_main(int argc, char *argv[])
 #    line 0 "src/string/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "string/mod.h"
-#include <stdlib.h>
-#include <string.h>
 
 char *GSHL_string_dup(const char *const source)
 {
@@ -1781,16 +1918,9 @@ GSHL_TEST(string_reverse)
 // #include "format/mod.h"
 // #include "string/mod.h"
 
-#include <stdarg.h>
-#include <unistd.h>
-
 #ifdef GSHL_GLOBAL_FORMAT_STRING
 // #    include "array/mod.h"
 // #    include "macros/mod.h"
-
-#    include <assert.h>
-#    include <stdlib.h>
-#    include <string.h>
 
 static GSHL_GlobalFormatString global_string = {};
 
@@ -2015,13 +2145,6 @@ usize GSHL_dprintlnv(const int fd, const char *const restrict format,
 // #include "format/write.h"
 // #include "types/mod.h"
 
-#include <arpa/inet.h>
-#include <assert.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 usize GSHL_write_SocketAddrV4(GSHL_FormatString *string,
                               const GSHL_FormatSpecifier *fs)
 {
@@ -2130,8 +2253,6 @@ GSHL_FORMAT_SPECIFIER_REGISTER(
 // #include "format/write.h"
 // #include "types/mod.h"
 
-#include <assert.h>
-
 usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
                           const GSHL_FormatSpecifier *fs)
 {
@@ -2221,12 +2342,6 @@ GSHL_TEST(is_power_of_two)
 // #include "macros/mod.h"
 // #include "math/mod.h"
 // #include "print/mod.h"
-
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 static GSHL_LogConfig log_config = {
     .fd = STDERR_FILENO,
@@ -2452,14 +2567,38 @@ void GSHL_log_read_env(void)
 
 void GSHL_log_print_config(void) { GSHL_println("{LogConfig}", &log_config); }
 #ifdef GSHL_SOURCE_CODE_MAPPING
+#    line 0 "src/linkedlist/mod.c"
+#endif // GSHL_SOURCE_CODE_MAPPING
+// #include "linkedlist/mod.h"
+
+#ifdef GSHL_TESTS
+// #    include "test/mod.h"
+
+GSHL_TEST(linkedlist)
+{
+    typedef GSHL_LinkedListDecl(Grades, i32) Grades;
+    Grades grades = {};
+
+    GSHL_TEST_EQUAL(grades.head, NULL);
+    GSHL_TEST_EQUAL(grades.tail, NULL);
+
+    GSHL_LinkedList_push_back(&grades, 5);
+    GSHL_LinkedList_push_back(&grades, 4);
+    GSHL_LinkedList_push_back(&grades, 9);
+    GSHL_LinkedList_push_back(&grades, 1);
+
+    GSHL_TEST_EQUAL(grades.head->item, 5);
+    GSHL_TEST_EQUAL(grades.tail->item, 1);
+
+    GSHL_LinkedList_destroy(&grades);
+}
+
+#endif
+#ifdef GSHL_SOURCE_CODE_MAPPING
 #    line 0 "src/hash_table/mod.c"
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "hash_table/mod.h"
 // #include "macros/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 bool GSHL_HashTable_insert_wrapper(GSHL_HashTable *ht,
                                    const GSHL_HashTableKey key,
@@ -2707,9 +2846,6 @@ usize GSHL_hash_djb2(const char *string)
 // #include "format/mod.h"
 // #include "hash_table/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 extern __thread GSHL_HashTable GSHL_format_ht;
 
 usize GSHL_format_write(GSHL_FormatString *string,
@@ -2803,9 +2939,6 @@ usize GSHL_format_writev(GSHL_FormatString *string,
 // #include "format/u8.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_usize(GSHL_FormatString *string,
                        const GSHL_FormatSpecifier *fs)
@@ -2902,9 +3035,6 @@ GSHL_TEST(write_usize)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_u8(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_U8);
@@ -2952,9 +3082,6 @@ GSHL_TEST(write_u8)
 // #include "format/usize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_u64(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -3007,9 +3134,6 @@ GSHL_TEST(write_u64)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_u32(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_U32);
@@ -3060,9 +3184,6 @@ GSHL_TEST(write_u32)
 // #include "format/usize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_u16(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -3134,11 +3255,6 @@ GSHL_TEST(write_u16)
 // #include "hash_table/mod.h"
 // #include "print/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 __thread GSHL_HashTable GSHL_format_ht = {};
 __thread GSHL_FormatSpecifiers GSHL_format_specifiers = {};
 
@@ -3151,7 +3267,7 @@ static usize GSHL_hash_idem(const GSHL_HashTableKey key) { return key.usize; }
 
 void GSHL_format_specifiers_print(void)
 {
-    GSHL_DArrayTypeDecl(GSHL_FSS, const char *);
+    typedef GSHL_DArrayTypeDecl(GSHL_FSS, const char *) GSHL_FSS;
     GSHL_FSS fss = {};
     GSHL_DArray_init(&fss);
 
@@ -3243,10 +3359,6 @@ GSHL_FORMAT_SPECIFIERS
 // #include "string/mod.h"
 // #include "types/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
 usize GSHL_write_pointer(GSHL_FormatString *string,
                          const GSHL_FormatSpecifier *fs)
 {
@@ -3311,12 +3423,6 @@ GSHL_TEST(write_pointer)
 // #include "array/mod.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 usize GSHL_hash_format_specifier(const char *const start, const char *const end,
                                  const char **startP)
@@ -3407,11 +3513,13 @@ GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
 {
     GSHL_ASSERT(format != NULL);
 
-    static __thread GSHL_FormatString strings[10] = {};
-    static __thread usize strings_index = 0;
+    static __thread struct {
+        GSHL_FormatString strings[10];
+        usize index;
+    } rotate = {};
 
-    GSHL_FormatString *string = &strings[strings_index];
-    strings_index = (strings_index + 1) % GSHL_ARRAY_LEN(strings);
+    GSHL_FormatString *string = &rotate.strings[rotate.index];
+    rotate.index = (rotate.index + 1) / GSHL_ARRAY_LEN(rotate.strings);
 
     GSHL_DArray_init(string);
 
@@ -3538,9 +3646,6 @@ GSHL_TEST(format_wrapper)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_isize(GSHL_FormatString *string,
                        const GSHL_FormatSpecifier *fs)
 {
@@ -3645,9 +3750,6 @@ GSHL_TEST(write_isize)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_i8(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_I8);
@@ -3697,9 +3799,6 @@ GSHL_TEST(write_i8)
 // #include "format/isize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_i64(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -3751,9 +3850,6 @@ GSHL_TEST(write_i64)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_i32(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
     GSHL_ASSERT(fs->kind == GSHL_FORMAT_SPECIFIER_I32);
@@ -3803,9 +3899,6 @@ GSHL_TEST(write_i32)
 // #include "format/isize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_i16(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -3858,9 +3951,6 @@ GSHL_TEST(write_i16)
 // #include "format/usize.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_hex32(GSHL_FormatString *string,
                        const GSHL_FormatSpecifier *fs)
@@ -3970,9 +4060,6 @@ GSHL_TEST(write_hex32)
 // #include "macros/mod.h"
 // #include "string/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 usize GSHL_write_cstring(GSHL_FormatString *string,
                          const GSHL_FormatSpecifier *fs)
 {
@@ -4024,9 +4111,6 @@ GSHL_TEST(write_cstring)
 
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_char(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -4086,9 +4170,6 @@ GSHL_TEST(write_char)
 // #include "dynamic_array/mod.h"
 // #include "macros/mod.h"
 // #include "string/mod.h"
-
-#include <assert.h>
-#include <stdlib.h>
 
 usize GSHL_write_bool(GSHL_FormatString *string, const GSHL_FormatSpecifier *fs)
 {
@@ -4161,13 +4242,10 @@ GSHL_TEST(write_bool)
 
 // #include "array/mod.h"
 
-#include <assert.h>
-#include <stdlib.h>
-
 #ifdef GSHL_TESTS
 // #    include "test/mod.h"
 
-GSHL_DArrayTypeDecl(DArray, int);
+typedef GSHL_DArrayTypeDecl(DArray, int) DArray;
 
 GSHL_TEST(da)
 {
@@ -4257,6 +4335,16 @@ GSHL_TEST(da)
     GSHL_TEST_EQUAL(da.items[5], -3);
 
     GSHL_DArray_destroy(&da);
+
+    GSHL_DArray_init(&da, 1, 2, 3);
+    GSHL_TEST_NEQUAL(da.items, NULL);
+    GSHL_TEST_EQUAL(da.capacity, GSHL_DARRAY_INIT_CAPACITY);
+    GSHL_TEST_EQUAL(da.count, 3);
+    GSHL_TEST_EQUAL(da.items[0], 1);
+    GSHL_TEST_EQUAL(da.items[1], 2);
+    GSHL_TEST_EQUAL(da.items[2], 3);
+
+    GSHL_DArray_destroy(&da);
 }
 
 #endif
@@ -4265,7 +4353,6 @@ GSHL_TEST(da)
 #endif // GSHL_SOURCE_CODE_MAPPING
 // #include "array/mod.h"
 // #include "types/mod.h"
-#include <stdlib.h>
 
 #ifdef GSHL_TESTS
 
@@ -4305,6 +4392,17 @@ GSHL_TEST(array)
     GSHL_TEST_EQUAL(sum, 15);
 
     free(array.items);
+}
+
+GSHL_TEST(array_decl)
+{
+    GSHL_Array(i32, 3) a = {1, 2};
+
+    GSHL_TEST_EQUAL(GSHL_ARRAY_LEN(a), 3);
+
+    GSHL_TEST_EQUAL(a[0], 1);
+    GSHL_TEST_EQUAL(a[1], 2);
+    GSHL_TEST_EQUAL(a[2], 0);
 }
 
 #endif
