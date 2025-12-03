@@ -95,11 +95,13 @@ GSHL_StringView GSHL_format_wrapperv(const char *const restrict format,
 {
     GSHL_ASSERT(format != NULL);
 
-    static __thread GSHL_FormatString strings[10] = {};
-    static __thread usize strings_index = 0;
+    static __thread struct {
+        GSHL_FormatString strings[10];
+        usize index;
+    } rotate = {};
 
-    GSHL_FormatString *string = &strings[strings_index];
-    strings_index = (strings_index + 1) % GSHL_ARRAY_LEN(strings);
+    GSHL_FormatString *string = &rotate.strings[rotate.index];
+    rotate.index = (rotate.index + 1) / GSHL_ARRAY_LEN(rotate.strings);
 
     GSHL_DArray_init(string);
 
