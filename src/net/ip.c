@@ -9,9 +9,9 @@ usize GSHL_write_Ipv4Addr(GSHL_FormatString *string,
 {
     const GSHL_Ipv4Addr *addr = fs->value.pointer;
 
-    return GSHL_format_write(string, "{u16}.{u16}.{u16}.{u16}",
-                             addr->octects[0], addr->octects[1],
-                             addr->octects[2], addr->octects[3]);
+    return GSHL_format_write(string, "{u8}.{u8}.{u8}.{u8}", addr->octects[0],
+                             addr->octects[1], addr->octects[2],
+                             addr->octects[3]);
 }
 
 GSHL_FORMAT_SPECIFIER_REGISTER(GSHL_Ipv4Addr,
